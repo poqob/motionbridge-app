@@ -1,0 +1,199 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../utils/network_manager.dart';
+import '../../../constants/app_haptics.dart';
+import '../../settings/logic/settings_provider.dart';
+
+class TrackpadState {
+  final Offset pointerPosition;
+  final bool isInteracting;
+
+  TrackpadState({required this.pointerPosition, required this.isInteracting});
+
+  TrackpadState copyWith({Offset? pointerPosition, bool? isInteracting}) {
+    return TrackpadState(
+      pointerPosition: pointerPosition ?? this.pointerPosition,
+      isInteracting: isInteracting ?? this.isInteracting,
+    );
+  }
+}
+
+class TrackpadNotifier extends Notifier<TrackpadState> {
+  Timer? _inertiaTimer;
+  Offset _currentVelocity = Offset.zero;
+
+  int _activePointers = 0;
+  int _maxPointersInSequence = 0;
+  bool _movedSignificantly = false;
+  DateTime _lastScaleStartTime = DateTime.now();
+
+  // Throttling state
+  DateTime _lastSendTime = DateTime.now();
+  double _accumulatedDx = 0;
+  double _accumulatedDy = 0;
+  int _lastPointerCount = 1;
+
+  @override
+  TrackpadState build() {
+    return TrackpadState(pointerPosition: Offset.zero, isInteracting: false);
+  }
+
+  void _send(String type, Map<String, dynamic> data) {
+    final Map<String, dynamic> payload = {"t": type};
+    data.forEach((key, value) {
+      if (value is double) {
+        payload[key] = double.parse(value.toStringAsFixed(1));
+      } else {
+        payload[key] = value;
+      }
+    });
+    NetworkManager().sendPacket(payload);
+  }
+
+  void _flushAccumulated() {
+    if (_accumulatedDx != 0 || _accumulatedDy != 0) {
+      if (_lastPointerCount == 1) {
+        _send("M", {"x": _accumulatedDx, "y": _accumulatedDy});
+      } else if (_lastPointerCount == 2) {
+        _send("S", {"x": _accumulatedDx, "y": _accumulatedDy});
+      }
+      _accumulatedDx = 0;
+      _accumulatedDy = 0;
+    }
+  }
+
+  void onPointerDown(PointerDownEvent event) {
+    if (_activePointers == 0) {
+      _maxPointersInSequence = 0;
+      _movedSignificantly = false;
+      _lastScaleStartTime = DateTime.now();
+    }
+    _activePointers++;
+    if (_activePointers > _maxPointersInSequence) {
+      _maxPointersInSequence = _activePointers;
+    }
+  }
+
+  void onPointerUp(PointerUpEvent event) {
+    _activePointers--;
+    if (_activePointers <= 0) {
+      _activePointers = 0;
+
+      final duration = DateTime.now()
+          .difference(_lastScaleStartTime)
+          .inMilliseconds;
+      if (duration < 250 && !_movedSignificantly) {
+        if (_maxPointersInSequence == 1) {
+          onLeftTap();
+        } else if (_maxPointersInSequence == 2) {
+          onRightTap();
+        }
+      }
+    }
+  }
+
+  void onPointerCancel(PointerCancelEvent event) {
+    _activePointers--;
+    if (_activePointers < 0) _activePointers = 0;
+  }
+
+  void onScaleStart(ScaleStartDetails details) {
+    _inertiaTimer?.cancel();
+    _lastScaleStartTime = DateTime.now();
+    _flushAccumulated();
+
+    state = state.copyWith(
+      pointerPosition: details.localFocalPoint,
+      isInteracting: true,
+    );
+  }
+
+  void onScaleUpdate(ScaleUpdateDetails details) {
+    state = state.copyWith(pointerPosition: details.localFocalPoint);
+
+    int pointers = details.pointerCount;
+    if (pointers == 0) pointers = _activePointers;
+
+    // If pointer count changes, flush the old accumulated data
+    if (pointers != _lastPointerCount) {
+      _flushAccumulated();
+      _lastPointerCount = pointers;
+    }
+
+    _accumulatedDx += details.focalPointDelta.dx;
+    if (details.focalPointDelta.distance > 1.5) {
+      _movedSignificantly = true;
+    }
+    _accumulatedDy += details.focalPointDelta.dy;
+
+    final now = DateTime.now();
+    final maxFps = ref.read(settingsProvider).maxFps;
+    final intervalMs = 1000 ~/ maxFps;
+
+    if (now.difference(_lastSendTime).inMilliseconds >= intervalMs) {
+      _flushAccumulated();
+      _lastSendTime = now;
+    }
+  }
+
+  void onScaleEnd(ScaleEndDetails details) {
+    _flushAccumulated();
+    state = state.copyWith(isInteracting: false);
+
+    final duration = DateTime.now()
+        .difference(_lastScaleStartTime)
+        .inMilliseconds;
+    if (_activePointers == 1 &&
+        duration < 250 &&
+        details.velocity.pixelsPerSecond.distance < 100) {
+      // Tap yakalama - logic can be added later if needed
+    }
+
+    if (details.pointerCount == 0 && _activePointers > 0) {
+      _activePointers = 0;
+    }
+
+    _currentVelocity = details.velocity.pixelsPerSecond / 60;
+    // Reduce inertia threshold briefly if maxFps is low, but usually standard 1.0 is fine
+    if (_currentVelocity.distance < 1.0) return;
+
+    _startInertia();
+  }
+
+  void _startInertia() {
+    _inertiaTimer?.cancel();
+
+    final maxFps = ref.read(settingsProvider).maxFps;
+    final intervalMs = 1000 ~/ maxFps;
+
+    _inertiaTimer = Timer.periodic(Duration(milliseconds: intervalMs), (timer) {
+      if (_currentVelocity.distance < 0.5) {
+        timer.cancel();
+        return;
+      }
+      // Decay velocity based on frame rate (rough approximation)
+      // Standard was 16ms decay of 0.90
+      // if interval is 33ms (30fps), it should decay twice as much.
+      final decayMultiplier = intervalMs / 16.0;
+      final actualDecay = 1.0 - ((1.0 - 0.90) * decayMultiplier);
+
+      _currentVelocity = _currentVelocity * actualDecay.clamp(0.0, 0.99);
+      _send("M", {"x": _currentVelocity.dx, "y": _currentVelocity.dy});
+    });
+  }
+
+  void onLeftTap() {
+    AppHaptics.mediumImpact();
+    _send("C", {"b": 0});
+  }
+
+  void onRightTap() {
+    AppHaptics.mediumImpact();
+    _send("C", {"b": 1});
+  }
+}
+
+final trackpadProvider = NotifierProvider<TrackpadNotifier, TrackpadState>(
+  TrackpadNotifier.new,
+);

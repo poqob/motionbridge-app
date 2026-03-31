@@ -1,0 +1,241 @@
+import 'utils/network_manager.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:motion_bridge/l10n/app_localizations.dart';
+import 'constants/app_theme.dart';
+import 'features/trackpad/ui/trackpad_view.dart';
+import 'features/dimmer/ui/dimmer_view.dart';
+import 'features/settings/logic/settings_provider.dart';
+import 'features/settings/ui/settings_view.dart';
+
+enum InputMode { trackpad, dimmer }
+
+final inputModeProvider = NotifierProvider<InputModeNotifier, InputMode>(() {
+  return InputModeNotifier();
+});
+
+class InputModeNotifier extends Notifier<InputMode> {
+  @override
+  InputMode build() => InputMode.trackpad;
+
+  void setMode(InputMode newMode) {
+    state = newMode;
+  }
+}
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  runApp(const ProviderScope(child: MotionBridgeApp()));
+}
+
+class MotionBridgeApp extends ConsumerWidget {
+  const MotionBridgeApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settingsState = ref.watch(settingsProvider);
+
+    return MaterialApp(
+      title: 'MotionBridge',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: settingsState.themeMode, // Ayarlardan çekilen tema
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: settingsState.languageCode.isEmpty
+          ? null
+          : Locale(settingsState.languageCode),
+      home: const MotionScreen(),
+    );
+  }
+}
+
+class MotionScreen extends ConsumerStatefulWidget {
+  const MotionScreen({super.key});
+
+  @override
+  ConsumerState<MotionScreen> createState() => _MotionScreenState();
+}
+
+class _MotionScreenState extends ConsumerState<MotionScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // We will start discovery when settings are fully built
+  }
+
+  void _showControllersMenu(BuildContext context) {
+    final currentMode = ref.read(inputModeProvider);
+    final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.95),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                loc.controllers,
+                style: theme.textTheme.displayMedium?.copyWith(fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              _MenuTile(
+                title: loc.trackpad,
+                icon: Icons.touch_app_rounded,
+                isSelected: currentMode == InputMode.trackpad,
+                onTap: () {
+                  ref
+                      .read(inputModeProvider.notifier)
+                      .setMode(InputMode.trackpad);
+                  Navigator.pop(context);
+                },
+              ),
+              _MenuTile(
+                title: loc.dimmer,
+                icon: Icons.blur_on_rounded,
+                isSelected: currentMode == InputMode.dimmer,
+                onTap: () {
+                  ref
+                      .read(inputModeProvider.notifier)
+                      .setMode(InputMode.dimmer);
+                  Navigator.pop(context);
+                },
+              ),
+              const Divider(height: 32),
+              _MenuTile(
+                title: loc.settings,
+                icon: Icons.settings_rounded,
+                isSelected: false,
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsView()),
+                  );
+                },
+              ),
+              const SizedBox(height: 48),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Dimmer arka plan dinleyicisi
+    ref.listen(dimmerProvider, (p, n) {});
+
+    // Discovery mechanism hook
+    ref.listen(settingsProvider, (prev, next) {
+      if (next.deviceName.isNotEmpty && next.deviceId.isNotEmpty) {
+        NetworkManager().startDiscovery(
+          name: next.deviceName,
+          id: next.deviceId,
+        );
+      }
+    });
+
+    final mode = ref.watch(inputModeProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    Widget activeView = switch (mode) {
+      InputMode.trackpad => const TrackpadView(key: ValueKey('trackpad')),
+      InputMode.dimmer => const DimmerView(key: ValueKey('dimmer')),
+    };
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 600),
+            switchInCurve: Curves.easeOutExpo,
+            switchOutCurve: Curves.easeInCirc,
+            child: activeView,
+          ),
+
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? const Color(0x33000000)
+                            : const Color(0x08000000),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.menu_rounded),
+                    color: theme.colorScheme.onSurface,
+                    onPressed: () => _showControllersMenu(context),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MenuTile extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _MenuTile({
+    required this.title,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = isSelected
+        ? theme.colorScheme.onSurface
+        : theme.textTheme.labelMedium?.color ?? Colors.grey;
+
+    return ListTile(
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      tileColor: isSelected
+          ? theme.colorScheme.secondary.withValues(alpha: 0.3)
+          : Colors.transparent,
+      leading: Icon(icon, color: color),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: color,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          letterSpacing: 1.0,
+        ),
+      ),
+    );
+  }
+}

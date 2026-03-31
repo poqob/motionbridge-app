@@ -1,0 +1,29 @@
+{
+  "@@locale": "en",
+  "controllers": "CONTROLLERS",
+  "settings": "Settings",
+  "deviceName": "Device Name",
+  "trackpad": "Trackpad",
+  "dimmer": "Dimmer",
+  "gentlyMove": "Gently move or gesture",
+  "autoDimSync": "Auto-Dim Sync",
+  "maxPacketRate": "Max Packet Rate (FPS)",
+  "theme": "Theme",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "aboutApp": "About App",
+  "licenses": "Licenses",
+  "privacyPolicy": "Privacy Policy",
+  "language": "Language",
+  "languageSystem": "System",
+  "languageEnglish": "English",
+  "languageTurkish": "Türkçe",
+  "languageRussian": "Русский",
+  "version": "Version: {version}",
+  "@version": {
+    "placeholders": {
+      "version": {}
+    }
+  }
+}
