@@ -34,6 +34,7 @@ class TrackpadView extends ConsumerWidget {
           Positioned.fill(
             child: Listener(
               onPointerDown: notifier.onPointerDown,
+              onPointerMove: notifier.onPointerMove,
               onPointerUp: notifier.onPointerUp,
               onPointerCancel: notifier.onPointerCancel,
               child: GestureDetector(

@@ -12,43 +12,47 @@ Motion Bridge, performans ve güvenilirliği optimize etmek için **hibrit bir i
 
 ## 2. Keşif (Discovery) ve Handshake Mekanizması
 
-### Aşama 1: Mobil Cihazın Yayını (Broadcast - UDP)
-Mobil cihaz, uygulaması açık olduğu sürece (veya eşleşme sağlanana kadar) yerel ağa her **2 saniyede bir** UDP Broadcast paketi gönderir.
+### Aşama 1: Masaüstü Yazılımının Yayını (Host Broadcast - UDP)
+Masaüstü (Host) yazılımı, çalıştığı sürece ağdaki mobil cihazlara varlığını duyurmak için her **2 saniyede bir** UDP Broadcast paketi gönderir.
 - **Hedef IP:** `255.255.255.255` (Network Subnet Broadcast)
-- **Hedef Port:** `44444` (Masaüstü yazılımı bu portu UDP olarak dinlemelidir)
+- **Hedef Port:** `44446` (Mobil uygulama bu portu UDP üzerinden pasif olarak dinler)
 
-**Örnek Broadcast Payload (JSON):**
+**Örnek Host Broadcast Payload (JSON):**
 ```json
 {
-  "type": "discovery",
-  "id": "1940a233b2a",
-  "name": "Controller_192",
-  "role": "controller",
-  "os": "android",
-  "ip": "192.168.1.192",
-  "port": 5000,
-  "version": 1
-}
-```
-
-### Aşama 2: Masaüstü (Host) Yazılımının Yanıtı (Handshake Çift Yönlü Güvenlik)
-Masaüstü yazılımı `44444` portundan bu paketi aldığında, kullanıcı eşleşmeye onay verdiyse (veya otomatik bağlantı açıksa), mobil cihazın `ip` ve `port` (Örn: 5000) adresine doğrudan (Unicast UDP) bir onay (ACK) mesajı gönderir.
-
-**Örnek Masaüstü Yanıtı (UDP):**
-```json
-{
-  "type": "discovery_ack",
+  "type": "host_announcement",
   "host_name": "Desktop-PC",
   "data_port": 44444,
   "ws_port": 44445
 }
 ```
-**Alanlar:**
-* `data_port`: Mobil uygulamanın yüksek frekanslı UDP (Move vs) verilerini göndereceği port.
-* `ws_port`: Masaüstünün WebSocket sunucusunu çalıştırdığı ve mobilin bağlanacağı port.
 
-### Aşama 3: WebSocket Bağlantısının Kurulması
-Mobil cihaz `discovery_ack` yanıtını aldıktan sonra, belirtilen `ws_port` üzerinden masaüstüne WebSocket bağlantısı açar (Örn: `ws://[HOST_IP]:44445`). WebSocket bağlantısı başarıyla kurulduğunda **Handshake tamamlanmış olur** ve olay aktarımı başlar.
+### Aşama 2: Mobil Cihazın Eşleşme Talebi (Pairing Request - UDP)
+Mobil uygulama, dinlediği yayınlardan bir masaüstü seçtiğinde (veya daha önce eşleşilen bir cihaza otomatik bağlanmak istediğinde), masaüstünün `data_port` (Örn: 44444) adresine doğrudan (Unicast UDP) bir eşleşme talebi gönderir.
+
+**Örnek Eşleşme Talebi (UDP):**
+```json
+{
+  "type": "pairing_request",
+  "id": "1940a233b2a",
+  "name": "Controller_192",
+  "os": "android",
+  "port": 5000,
+  "version": 1
+}
+```
+
+### Aşama 3: Masaüstünün Onayı ve WebSocket Bağlantısı
+Masaüstü yazılımı, eşleşme talebini aldığında (ve onaylandığında), mobil cihazın belirttiği `port` (Örn: 5000) adresine doğrudan (Unicast UDP) bir `discovery_ack` gönderir.
+
+**Örnek Masaüstü Yanıtı (UDP):**
+```json
+{
+  "type": "discovery_ack"
+}
+```
+
+Mobil cihaz bu onayı aldıktan sonra, masaüstünün `ws_port` (Örn: `44445`) üzerinden WebSocket bağlantısı açar (Örn: `ws://[HOST_IP]:44445`). WebSocket bağlantısı başarıyla kurulduğunda **Handshake tamamlanmış olur** ve olay aktarımı başlar.
 
 ---
 
@@ -80,6 +84,19 @@ Bir nesneyi tutma ve bırakma anları kritik olduğundan WebSocket üzerinden il
 ```
 ```json
 { "t": "DRAG_END" }
+```
+
+#### 3 Parmak Kaydırma (3-Finger Swipe)
+Trackpad üzerinde 3 parmakla eşik değeri aşacak kadar kaydırma yapıldığında WebSocket üzerinden tek seferlik olarak iletilir. Genellikle masaüstü değiştirmek veya görev görünümünü açmak için kullanılır (Mac'te Mission Control vb.).
+- `t`: "SWIPE_3"
+- `dir`: Parmakların fiziksel kaydırma yönünü verir (`"UP"`, `"DOWN"`, `"LEFT"`, `"RIGHT"`).
+  - `"RIGHT"` : Parmaklar sağa kaydı. Eylem -> Masaüstünde soldaki ekrana (önceki sanal masaüstü) geçiş yapılmalıdır.
+  - `"LEFT"`  : Parmaklar sola kaydı. Eylem -> Masaüstünde sağdaki ekrana (sonraki sanal masaüstü) geçiş yapılmalıdır.
+  - `"UP"`    : Parmaklar yukarı kaydı. Eylem -> Masaüstü önizleme / Task View açılmalıdır.
+
+**Örnek WebSocket Mesajı:**
+```json
+{ "t": "SWIPE_3", "dir": "RIGHT" }
 ```
 
 ### B. AKICI OLAYLAR (UDP ÜZERİNDEN GÖNDERİLİR)

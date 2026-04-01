@@ -53,12 +53,14 @@ class NetworkManager {
       _discoveredHostsController.stream;
 
   NetworkConnectionState _currentState = NetworkConnectionState.disconnected;
+  NetworkConnectionState get currentState => _currentState;
 
   final List<DiscoveredHost> _discoveredHosts = [];
   List<String> _pairedHostIps = [];
   String? _lastPairedHostIp;
 
   DiscoveredHost? _activeHost;
+  DiscoveredHost? get activeHost => _activeHost;
 
   String deviceName = "MotionBridge";
   String deviceId = "unknown";
@@ -81,6 +83,13 @@ class NetworkManager {
     }
   }
 
+  Future<void> unpairHost() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('last_paired_host');
+    _lastPairedHostIp = null;
+    disconnect();
+  }
+
   void sendPacket(Map<String, dynamic> data) {
     if (_currentState != NetworkConnectionState.connected ||
         _activeHost == null ||
@@ -91,7 +100,7 @@ class NetworkManager {
     try {
       final jsonString = jsonEncode(data);
       String type = data['t'] ?? '';
-      if (type == 'C' || type == 'DRAG_START' || type == 'DRAG_END') {
+      if (type == 'C' || type == 'DRAG_START' || type == 'DRAG_END' || type == 'SWIPE_3') {
         if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
           _webSocket!.add(jsonString);
           if (kDebugMode) print("Sent via WebSocket: $jsonString");

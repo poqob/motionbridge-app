@@ -31,12 +31,18 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   DateTime _lastPointerUpTime = DateTime.fromMillisecondsSinceEpoch(0);
   bool _isDragMode = false;
   bool _dragStartSent = false;
+  bool _lastActionWasTap = false;
+  DateTime _lastScrollTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   // Throttling state
   DateTime _lastSendTime = DateTime.now();
   double _accumulatedDx = 0;
   double _accumulatedDy = 0;
   int _lastPointerCount = 1;
+
+  final Map<int, Offset> _currentPositions = {};
+  final Map<int, Offset> _threeFingerStartPoints = {};
+  bool _threeFingerGestureTriggered = false;
 
   @override
   TrackpadState build() {
@@ -58,12 +64,18 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   void _flushAccumulated() {
     if (_accumulatedDx != 0 || _accumulatedDy != 0) {
       if (_lastPointerCount == 1) {
+        if (DateTime.now().difference(_lastScrollTime).inMilliseconds < 300) {
+          _accumulatedDx = 0;
+          _accumulatedDy = 0;
+          return;
+        }
         if (_isDragMode) {
           _send("DRAG", {"x": _accumulatedDx, "y": _accumulatedDy});
         } else {
           _send("M", {"x": _accumulatedDx, "y": _accumulatedDy});
         }
       } else if (_lastPointerCount == 2) {
+        _lastScrollTime = DateTime.now();
         final reverse = ref.read(settingsProvider).reverseScroll;
         final multiplier = reverse ? -1.0 : 1.0;
         _send("S", {
@@ -77,6 +89,8 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   }
 
   void onPointerDown(PointerDownEvent event) {
+    _currentPositions[event.pointer] = event.position;
+
     if (_activePointers == 0) {
       _maxPointersInSequence = 0;
       _movedSignificantly = false;
@@ -84,12 +98,14 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
       final timeSinceLastUp = DateTime.now()
           .difference(_lastPointerUpTime)
           .inMilliseconds;
-      if (timeSinceLastUp < 300) {
+      if (timeSinceLastUp < 300 && _lastActionWasTap) {
         _isDragMode = true;
         _dragStartSent = true;
         _send("DRAG_START", {});
       } else {
         _isDragMode = false;
+        _dragStartSent = false;
+        _lastActionWasTap = false;
       }
 
       _lastScaleStartTime = DateTime.now();
@@ -98,9 +114,17 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
     if (_activePointers > _maxPointersInSequence) {
       _maxPointersInSequence = _activePointers;
     }
+    
+    if (_activePointers == 3) {
+      _threeFingerStartPoints.clear();
+      _threeFingerStartPoints.addAll(_currentPositions);
+      _threeFingerGestureTriggered = false;
+    }
   }
 
   void onPointerUp(PointerUpEvent event) {
+    _currentPositions.remove(event.pointer);
+    _threeFingerStartPoints.remove(event.pointer);
     _activePointers--;
     if (_activePointers <= 0) {
       _activePointers = 0;
@@ -109,20 +133,65 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
       final duration = DateTime.now()
           .difference(_lastScaleStartTime)
           .inMilliseconds;
-      // Eğer drag modundaysak ve anlamlı bir şekilde sürüklendiysek tap yapma
       if (duration < 250 && !_movedSignificantly && !_dragStartSent) {
         if (_maxPointersInSequence == 1) {
           onLeftTap();
+          _lastActionWasTap = true;
         } else if (_maxPointersInSequence == 2) {
           onRightTap();
+          _lastActionWasTap = false;
+        } else {
+          _lastActionWasTap = false;
         }
+      } else {
+        _lastActionWasTap = false;
       }
     }
   }
 
   void onPointerCancel(PointerCancelEvent event) {
+    _currentPositions.remove(event.pointer);
+    _threeFingerStartPoints.remove(event.pointer);
     _activePointers--;
     if (_activePointers < 0) _activePointers = 0;
+  }
+
+  void onPointerMove(PointerMoveEvent event) {
+    if (_currentPositions.containsKey(event.pointer)) {
+      _currentPositions[event.pointer] = event.position;
+    }
+
+    if (_activePointers == 3 && !_threeFingerGestureTriggered) {
+      if (_threeFingerStartPoints.length == 3) {
+        double sumDx = 0;
+        double sumDy = 0;
+        int validCount = 0;
+        for (final id in _threeFingerStartPoints.keys) {
+          if (_currentPositions.containsKey(id)) {
+            sumDx += _currentPositions[id]!.dx - _threeFingerStartPoints[id]!.dx;
+            sumDy += _currentPositions[id]!.dy - _threeFingerStartPoints[id]!.dy;
+            validCount++;
+          }
+        }
+
+        if (validCount == 3) {
+          final avgDx = sumDx / 3;
+          final avgDy = sumDy / 3;
+
+          // 25 pixels average distance for trigger
+          if (avgDx.abs() > 25 || avgDy.abs() > 25) {
+            String dir = "";
+            if (avgDx.abs() > avgDy.abs()) {
+              dir = avgDx > 0 ? "RIGHT" : "LEFT";
+            } else {
+              dir = avgDy > 0 ? "DOWN" : "UP";
+            }
+            _send("SWIPE_3", {"dir": dir});
+            _threeFingerGestureTriggered = true;
+          }
+        }
+      }
+    }
   }
 
   void onScaleStart(ScaleStartDetails details) {
