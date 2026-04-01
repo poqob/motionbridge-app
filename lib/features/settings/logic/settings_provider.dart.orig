@@ -9,7 +9,6 @@ class SettingsState {
   final String languageCode;
   final String deviceName;
   final String deviceId; // '' for system
-  final bool reverseScroll;
 
   SettingsState({
     required this.maxFps,
@@ -17,7 +16,6 @@ class SettingsState {
     required this.languageCode,
     required this.deviceName,
     required this.deviceId,
-    required this.reverseScroll,
   });
 
   SettingsState copyWith({
@@ -26,7 +24,6 @@ class SettingsState {
     String? languageCode,
     String? deviceName,
     String? deviceId,
-    bool? reverseScroll,
   }) {
     return SettingsState(
       maxFps: maxFps ?? this.maxFps,
@@ -34,7 +31,6 @@ class SettingsState {
       languageCode: languageCode ?? this.languageCode,
       deviceName: deviceName ?? this.deviceName,
       deviceId: deviceId ?? this.deviceId,
-      reverseScroll: reverseScroll ?? this.reverseScroll,
     );
   }
 }
@@ -46,25 +42,23 @@ class SettingsNotifier extends Notifier<SettingsState> {
   SettingsState build() {
     _initPrefs();
     return SettingsState(
-      maxFps: 30,
+      maxFps: 60,
       themeMode: ThemeMode.system,
       languageCode: '',
       deviceName: 'MotionBridge',
       deviceId: '',
-      reverseScroll: false,
     );
   }
 
   Future<void> _initPrefs() async {
     _prefs = await SharedPreferences.getInstance();
-    final fps = _prefs?.getInt('maxFps') ?? 30;
+    final fps = _prefs?.getInt('maxFps') ?? 60;
     final themeIndex = _prefs?.getInt('themeMode') ?? ThemeMode.system.index;
     final lang = _prefs?.getString('languageCode') ?? '';
     final storedDeviceId = _prefs?.getString('deviceId');
     final deviceId =
         storedDeviceId ??
         DateTime.now().millisecondsSinceEpoch.toRadixString(16);
-    final revScroll = _prefs?.getBool('reverseScroll') ?? false;
     if (storedDeviceId == null) {
       _prefs?.setString('deviceId', deviceId);
     }
@@ -104,7 +98,6 @@ class SettingsNotifier extends Notifier<SettingsState> {
       languageCode: lang,
       deviceName: deviceName,
       deviceId: deviceId,
-      reverseScroll: revScroll,
     );
   }
 
@@ -126,11 +119,6 @@ class SettingsNotifier extends Notifier<SettingsState> {
   void setLanguageCode(String code) {
     state = state.copyWith(languageCode: code);
     _prefs?.setString('languageCode', code);
-  }
-
-  void setReverseScroll(bool value) {
-    state = state.copyWith(reverseScroll: value);
-    _prefs?.setBool('reverseScroll', value);
   }
 }
 

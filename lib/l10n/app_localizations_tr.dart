@@ -69,6 +69,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get languageRussian => 'Русский';
 
   @override
+  String get reverseScroll => 'Kaydırmayı Tersine Çevir';
+
+  @override
   String version(Object version) {
     return 'Sürüm: $version';
   }

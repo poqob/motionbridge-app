@@ -220,6 +220,12 @@ abstract class AppLocalizations {
   /// **'Русский'**
   String get languageRussian;
 
+  /// No description provided for @reverseScroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse Scroll'**
+  String get reverseScroll;
+
   /// No description provided for @version.
   ///
   /// In en, this message translates to:

@@ -1,0 +1,10 @@
+--- trackpad_provider.dart
++++ trackpad_provider.dart
+@@ -137,6 +137,7 @@
+     bool wasDragMode = _isDragMode;
+     if (_isDragMode && _movedSignificantly) {
+       _send("DRAG_END", {});
++      _isDragMode = false;
+     }
+     if (_activePointers <= 0) {
+       _isDragMode = false;

@@ -97,8 +97,8 @@ class SettingsView extends ConsumerWidget {
               const SizedBox(height: 12),
               SegmentedButton<int>(
                 segments: const [
-                  ButtonSegment(value: 25, label: Text('25')),
                   ButtonSegment(value: 30, label: Text('30')),
+                  ButtonSegment(value: 45, label: Text('45')),
                   ButtonSegment(value: 60, label: Text('60')),
                   ButtonSegment(value: 120, label: Text('120')),
                 ],
@@ -141,51 +141,85 @@ class SettingsView extends ConsumerWidget {
               const SizedBox(height: 32),
 
               // Language Section
-              Text(
-                loc.language,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  loc.language,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
                   ),
-                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: DropdownButton<String>(
-                  value: state.languageCode,
-                  isExpanded: true,
-                  underline: const SizedBox(),
-                  dropdownColor: theme.colorScheme.surface,
-                  items: [
-                    DropdownMenuItem(
-                      value: '',
-                      child: Text(loc.languageSystem),
-                    ),
-                    DropdownMenuItem(
-                      value: 'en',
-                      child: Text(loc.languageEnglish),
-                    ),
-                    DropdownMenuItem(
-                      value: 'tr',
-                      child: Text(loc.languageTurkish),
-                    ),
-                    DropdownMenuItem(
-                      value: 'ru',
-                      child: Text(loc.languageRussian),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) {
-                      notifier.setLanguageCode(val);
-                    }
-                  },
+                subtitle: Text(
+                  state.languageCode == 'en'
+                      ? loc.languageEnglish
+                      : state.languageCode == 'tr'
+                      ? loc.languageTurkish
+                      : state.languageCode == 'ru'
+                      ? loc.languageRussian
+                      : loc.languageSystem,
+                  style: theme.textTheme.bodyMedium,
                 ),
+                trailing: const Icon(Icons.language_rounded),
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: theme.colorScheme.surface,
+                    builder: (ctx) {
+                      return SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              title: Text(loc.languageSystem),
+                              onTap: () {
+                                notifier.setLanguageCode('');
+                                Navigator.pop(ctx);
+                              },
+                            ),
+                            ListTile(
+                              title: Text(loc.languageEnglish),
+                              onTap: () {
+                                notifier.setLanguageCode('en');
+                                Navigator.pop(ctx);
+                              },
+                            ),
+                            ListTile(
+                              title: Text(loc.languageTurkish),
+                              onTap: () {
+                                notifier.setLanguageCode('tr');
+                                Navigator.pop(ctx);
+                              },
+                            ),
+                            ListTile(
+                              title: Text(loc.languageRussian),
+                              onTap: () {
+                                notifier.setLanguageCode('ru');
+                                Navigator.pop(ctx);
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+
+              const SizedBox(height: 16),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  loc.reverseScroll,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                value: state.reverseScroll,
+                onChanged: (val) {
+                  notifier.setReverseScroll(val);
+                },
               ),
 
               const SizedBox(height: 48),
@@ -204,6 +238,14 @@ class SettingsView extends ConsumerWidget {
                     applicationName: 'MotionBridge',
                     applicationVersion: version,
                     applicationIcon: const FlutterLogo(size: 40),
+                    children: [
+                      const SizedBox(height: 16),
+                      Text(
+                        'MotionBridge turns your device into a wireless trackpad and controller for your computer. '
+                        'It connects over your local network to provide low-latency mouse and scrolling interactions.',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
                   );
                 },
               ),

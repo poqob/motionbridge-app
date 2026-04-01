@@ -70,21 +70,6 @@ Tek tıklama, sağ tıklama gibi eylemler tetiklendiğinde.
 { "t": "C", "b": 1 }
 ```
 
-### C. Sürükleme (Drag)
-Çift tıklayıp sürükleme yapıldığında (örneğin pencere taşıma veya metin seçimi) `DRAG` payload'ı gönderilir.
-- `t`: "DRAG"
-- `x`: Yatay eksendeki delta.
-- `y`: Dikey eksendeki delta.
-
-**Örnek:**
-```json
-{ "t": "DRAG", "x": 10.0, "y": 2.5 }
-```
-Sürükleme işlemi sonlandığında ise `DRAG_END` gönderilir.
-```json
-{ "t": "DRAG_END" }
-```
-
 ### C. Kaydırma (Scroll)
 Trackpad üzerinde iki parmak kaydırıldığında, fare tekerleği (scroll) etkisi yapar.
 - `t`: "S" (Scroll)

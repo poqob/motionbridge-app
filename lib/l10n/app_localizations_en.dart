@@ -69,6 +69,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageRussian => 'Русский';
 
   @override
+  String get reverseScroll => 'Reverse Scroll';
+
+  @override
   String version(Object version) {
     return 'Version: $version';
   }

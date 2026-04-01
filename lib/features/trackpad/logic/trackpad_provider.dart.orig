@@ -28,9 +28,6 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   bool _movedSignificantly = false;
   DateTime _lastScaleStartTime = DateTime.now();
 
-  DateTime _lastPointerUpTime = DateTime.fromMillisecondsSinceEpoch(0);
-  bool _isDragMode = false;
-
   // Throttling state
   DateTime _lastSendTime = DateTime.now();
   double _accumulatedDx = 0;
@@ -57,18 +54,9 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   void _flushAccumulated() {
     if (_accumulatedDx != 0 || _accumulatedDy != 0) {
       if (_lastPointerCount == 1) {
-        if (_isDragMode) {
-          _send("DRAG", {"x": _accumulatedDx, "y": _accumulatedDy});
-        } else {
-          _send("M", {"x": _accumulatedDx, "y": _accumulatedDy});
-        }
+        _send("M", {"x": _accumulatedDx, "y": _accumulatedDy});
       } else if (_lastPointerCount == 2) {
-        final reverse = ref.read(settingsProvider).reverseScroll;
-        final multiplier = reverse ? -1.0 : 1.0;
-        _send("S", {
-          "x": _accumulatedDx * multiplier,
-          "y": _accumulatedDy * multiplier,
-        });
+        _send("S", {"x": _accumulatedDx, "y": _accumulatedDy});
       }
       _accumulatedDx = 0;
       _accumulatedDy = 0;
@@ -79,16 +67,6 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
     if (_activePointers == 0) {
       _maxPointersInSequence = 0;
       _movedSignificantly = false;
-
-      final timeSinceLastUp = DateTime.now()
-          .difference(_lastPointerUpTime)
-          .inMilliseconds;
-      if (timeSinceLastUp < 300) {
-        _isDragMode = true;
-      } else {
-        _isDragMode = false;
-      }
-
       _lastScaleStartTime = DateTime.now();
     }
     _activePointers++;
@@ -101,7 +79,6 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
     _activePointers--;
     if (_activePointers <= 0) {
       _activePointers = 0;
-      _lastPointerUpTime = DateTime.now();
 
       final duration = DateTime.now()
           .difference(_lastScaleStartTime)
@@ -162,15 +139,6 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
 
   void onScaleEnd(ScaleEndDetails details) {
     _flushAccumulated();
-
-    bool wasDragMode = _isDragMode;
-    if (_isDragMode && _movedSignificantly) {
-      _send("DRAG_END", {});
-    }
-    if (details.pointerCount == 0 || _activePointers <= 0) {
-      _isDragMode = false;
-    }
-
     state = state.copyWith(isInteracting: false);
 
     final duration = DateTime.now()

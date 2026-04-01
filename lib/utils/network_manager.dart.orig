@@ -46,7 +46,8 @@ class NetworkManager {
       final jsonString = jsonEncode(data);
       final bytes = utf8.encode(jsonString);
       _socket?.send(bytes, _hostIp!, _hostDataPort!);
-    } catch (e) {}
+    } catch (e) {
+    }
   }
 
   void _setState(ConnectionState state) {
@@ -73,6 +74,7 @@ class NetworkManager {
         localPort,
       );
       _socket?.broadcastEnabled = true;
+
 
       // Cihazın yerel IP'sini bulalım
       String localIp = "127.0.0.1";
@@ -135,6 +137,9 @@ class NetworkManager {
       // Eğer Host'tan onay (ACK) geldiyse
       if (json['type'] == 'discovery_ack' &&
           _currentState == ConnectionState.discovering) {
+          "🤝 [Discovery] Handshake successful! Host: ${json['host_name']}",
+        );
+
         // Host bilgilerini kaydet
         _hostIp = senderIp;
         _hostName = json['host_name'] ?? "Unknown Host";
@@ -148,7 +153,10 @@ class NetworkManager {
       else if (json['type'] == 'disconnect') {
         disconnect();
       }
-    } catch (e) {}
+    } catch (e) {
+        "⚠️ [NetworkManager] Unknown packet from ${senderIp.address}: $msg",
+      );
+    }
   }
 
   void disconnect() {

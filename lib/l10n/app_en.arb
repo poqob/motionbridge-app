@@ -20,6 +20,7 @@
   "languageEnglish": "English",
   "languageTurkish": "Türkçe",
   "languageRussian": "Русский",
+  "reverseScroll": "Reverse Scroll",
   "version": "Version: {version}",
   "@version": {
     "placeholders": {
