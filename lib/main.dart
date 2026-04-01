@@ -8,6 +8,7 @@ import 'features/trackpad/ui/trackpad_view.dart';
 import 'features/dimmer/ui/dimmer_view.dart';
 import 'features/settings/logic/settings_provider.dart';
 import 'features/settings/ui/settings_view.dart';
+import 'features/dimmer/ui/dimmer_slider.dart';
 
 enum InputMode { trackpad, dimmer }
 
@@ -42,7 +43,7 @@ class MotionBridgeApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: settingsState.themeMode, // Ayarlardan çekilen tema
+      themeMode: settingsState.themeMode,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: settingsState.languageCode.isEmpty
@@ -61,10 +62,123 @@ class MotionScreen extends ConsumerStatefulWidget {
 }
 
 class _MotionScreenState extends ConsumerState<MotionScreen> {
+  bool _showLandscapeDimmer = false;
+
   @override
   void initState() {
     super.initState();
-    // We will start discovery when settings are fully built
+  }
+
+  void _showDeviceDiscovery(BuildContext context) {
+    final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.95),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              StreamBuilder<NetworkConnectionState>(
+                stream: NetworkManager().connectionStateStream,
+                initialData: NetworkConnectionState.disconnected,
+                builder: (context, snapshot) {
+                  final status = snapshot.data;
+                  String msg = "Ağ Aranıyor...";
+                  Color color = Colors.orange;
+
+                  if (status == NetworkConnectionState.connected) {
+                    msg = "Bağlı";
+                    color = const Color(0xFF4CAF50);
+                  } else if (status == NetworkConnectionState.waitingApproval) {
+                    msg = "Masaüstünde Onay Bekleniyor...";
+                    color = Colors.blueAccent;
+                  }
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.wifi_tethering_rounded,
+                        color: color,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        msg,
+                        style: theme.textTheme.displayMedium?.copyWith(
+                          fontSize: 16,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const Divider(height: 32),
+              Expanded(
+                child: StreamBuilder<List<DiscoveredHost>>(
+                  stream: NetworkManager().discoveredHostsStream,
+                  initialData: const [],
+                  builder: (context, snapshot) {
+                    final hosts = snapshot.data ?? [];
+                    if (hosts.isEmpty) {
+                      return Center(
+                        child: Text(
+                          "Ağda cihaz bulunamadı.\nMasaüstü uygulamanızın açık olduğuna emin olun.",
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey,
+                          ),
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: hosts.length,
+                      itemBuilder: (context, index) {
+                        final host = hosts[index];
+                        return ListTile(
+                          leading: const Icon(Icons.computer_rounded, size: 32),
+                          title: Text(
+                            host.hostName,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Text(host.ip),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.cable_rounded),
+                            onPressed: () {
+                              NetworkManager().connectToHost(host);
+                              Navigator.pop(ctx);
+                            },
+                          ),
+                          onTap: () {
+                            NetworkManager().connectToHost(host);
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showControllersMenu(BuildContext context) {
@@ -135,10 +249,8 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Dimmer arka plan dinleyicisi
     ref.listen(dimmerProvider, (p, n) {});
 
-    // Discovery mechanism hook
     ref.listen(settingsProvider, (prev, next) {
       if (next.deviceName.isNotEmpty && next.deviceId.isNotEmpty) {
         NetworkManager().startDiscovery(
@@ -151,6 +263,9 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
     final mode = ref.watch(inputModeProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final bool isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
 
     Widget activeView = switch (mode) {
       InputMode.trackpad => const TrackpadView(key: ValueKey('trackpad')),
@@ -167,6 +282,72 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
             child: activeView,
           ),
 
+          // Floating Dimmer Overlay for Landscape
+          if (isLandscape && mode == InputMode.trackpad && _showLandscapeDimmer)
+            Positioned(
+              right: 80, // slightly left of the menu button
+              top: 40,
+              bottom: 40,
+              child: Center(
+                child: DimmerSlider(
+                  width: 100,
+                  height: MediaQuery.of(context).size.height * 0.7,
+                ),
+              ),
+            ),
+
+          // Top Left Device Discovery Button
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: StreamBuilder<NetworkConnectionState>(
+                  stream: NetworkManager().connectionStateStream,
+                  initialData: NetworkConnectionState.disconnected,
+                  builder: (context, snapshot) {
+                    final status = snapshot.data;
+                    Color color = Colors.redAccent;
+                    IconData picon = Icons.wifi_off_rounded;
+
+                    if (status == NetworkConnectionState.connected) {
+                      color = const Color(0xFF4CAF50);
+                      picon = Icons.wifi_tethering_rounded;
+                    } else if (status ==
+                        NetworkConnectionState.waitingApproval) {
+                      color = Colors.blueAccent;
+                      picon = Icons.wifi_protected_setup_rounded;
+                    } else if (status == NetworkConnectionState.discovering) {
+                      color = Colors.orange;
+                      picon = Icons.wifi_find_rounded;
+                    }
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark
+                                ? const Color(0x33000000)
+                                : const Color(0x08000000),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: Icon(picon, color: color),
+                        onPressed: () => _showDeviceDiscovery(context),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+
+          // Top Right Menu Button
           SafeArea(
             child: Align(
               alignment: Alignment.topRight,
@@ -187,9 +368,21 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
                     ],
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.menu_rounded),
+                    icon: Icon(
+                      isLandscape && _showLandscapeDimmer
+                          ? Icons.close_rounded
+                          : Icons.menu_rounded,
+                    ),
                     color: theme.colorScheme.onSurface,
-                    onPressed: () => _showControllersMenu(context),
+                    onPressed: () {
+                      if (isLandscape && mode == InputMode.trackpad) {
+                        setState(() {
+                          _showLandscapeDimmer = !_showLandscapeDimmer;
+                        });
+                      } else {
+                        _showControllersMenu(context);
+                      }
+                    },
                   ),
                 ),
               ),

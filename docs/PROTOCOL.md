@@ -3,15 +3,16 @@
 Bu doküman, Masaüstü (Host) uygulamasını geliştirecek yazılımcı için hazırlanmıştır. Mobil uygulamanın ağ üzerinden masaüstü ile nasıl iletişim kurduğunu, keşif (discovery) algoritmalarını ve veri modellerini (payloads) detaylandırır.
 
 ## 1. Mimari Genel Bakış
-Motion Bridge iki aşamalı bir iletişim kurar:
-1. **Keşif ve Eşleşme (Handshake):** UDP Broadcast üzerinden cihazların birbirini bulması.
-2. **Veri Aktarımı (Event Streaming):** Eşleşme sağlandıktan sonra (performans için UDP veya kararlılık için TCP soketi üzerinden) JSON formatında anlık trackpad ve dimmer verilerinin akışı.
+Motion Bridge, performans ve güvenilirliği optimize etmek için **hibrit bir iletişim modeli (UDP + WebSocket)** kullanır:
+1. **Keşif ve Eşleşme (Handshake):** UDP Broadcast üzerinden cihazların birbirini bulması ve onaylaşması. Eşleşme sayesinde sadece yetkili (eşleşen) cihazlar birbirleriyle veri alışverişi yapabilir.
+2. **Kritik Olayların Aktarımı (WebSocket):** Tıklama (click) ve sürükleme (drag) başlangıç/bitiş gibi kesin iletilmesi gereken ("lossless") durumlar WebSocket üzerinden gönderilir.
+3. **Akıcı Veri Aktarımı (UDP):** Fare hareketi (move), kaydırma (scroll) ve sürükleme sırasındaki koordinat güncellemeleri gibi yüksek frekanslı kayıplı ("lossy") veriler UDP üzerinden gönderilmeye devam eder.
 
 ---
 
 ## 2. Keşif (Discovery) ve Handshake Mekanizması
 
-### Aşama 1: Mobil Cihazın Yayını (Broadcast)
+### Aşama 1: Mobil Cihazın Yayını (Broadcast - UDP)
 Mobil cihaz, uygulaması açık olduğu sürece (veya eşleşme sağlanana kadar) yerel ağa her **2 saniyede bir** UDP Broadcast paketi gönderir.
 - **Hedef IP:** `255.255.255.255` (Network Subnet Broadcast)
 - **Hedef Port:** `44444` (Masaüstü yazılımı bu portu UDP olarak dinlemelidir)
@@ -19,6 +20,7 @@ Mobil cihaz, uygulaması açık olduğu sürece (veya eşleşme sağlanana kadar
 **Örnek Broadcast Payload (JSON):**
 ```json
 {
+  "type": "discovery",
   "id": "1940a233b2a",
   "name": "Controller_192",
   "role": "controller",
@@ -28,87 +30,95 @@ Mobil cihaz, uygulaması açık olduğu sürece (veya eşleşme sağlanana kadar
   "version": 1
 }
 ```
-**Alanların Anlamları:**
-* `id`: Mobil cihazın eşsiz tanımlayıcısı (Masaüstünde "Bilinen cihazlar" veya "Otomatik bağlan" listesi yapmak için kullanılmalıdır).
-* `name`: Kullanıcının arayüzden belirlediği cihaz adı. Masaüstü arayüzünde "Bağlanmak isteyen cihazlar" listesinde görünecektir.
-* `role`: Gönderenin rolü (Şu an daima `"controller"`).
-* `ip`: Cihazın yerel ağ IP adresi (Masaüstü, eşleşme cevabını bu IP'ye atacak).
-* `port`: Mobil cihazın eşleşme cevapları (Handshake) için dinleyeceği port.
-* `version`: Protokol versiyonu (Gelecekteki uyumluluk kontrolleri için).
 
-### Aşama 2: Masaüstü (Host) Yazılımının Yanıtı (Handshake)
-Masaüstü yazılımı `44444` portundan bu paketi aldığında, kullanıcı eşleşmeye onay verdiyse (veya otomatik bağlantı açıksa), mobil cihazın `ip` ve `port` adresine doğrudan (Unicast veya TCP isteği ile) bir doğrulama mesajı göndererek Handshake'i tamamlar. (Bu kısmın masaüstü soket yapısına göre karar verilmesi esnektir. TCP ile 5000. porta bir soket bağlantısı açmak akışın yönünü kesinleştirmek için idealdir.)
+### Aşama 2: Masaüstü (Host) Yazılımının Yanıtı (Handshake Çift Yönlü Güvenlik)
+Masaüstü yazılımı `44444` portundan bu paketi aldığında, kullanıcı eşleşmeye onay verdiyse (veya otomatik bağlantı açıksa), mobil cihazın `ip` ve `port` (Örn: 5000) adresine doğrudan (Unicast UDP) bir onay (ACK) mesajı gönderir.
+
+**Örnek Masaüstü Yanıtı (UDP):**
+```json
+{
+  "type": "discovery_ack",
+  "host_name": "Desktop-PC",
+  "data_port": 44444,
+  "ws_port": 44445
+}
+```
+**Alanlar:**
+* `data_port`: Mobil uygulamanın yüksek frekanslı UDP (Move vs) verilerini göndereceği port.
+* `ws_port`: Masaüstünün WebSocket sunucusunu çalıştırdığı ve mobilin bağlanacağı port.
+
+### Aşama 3: WebSocket Bağlantısının Kurulması
+Mobil cihaz `discovery_ack` yanıtını aldıktan sonra, belirtilen `ws_port` üzerinden masaüstüne WebSocket bağlantısı açar (Örn: `ws://[HOST_IP]:44445`). WebSocket bağlantısı başarıyla kurulduğunda **Handshake tamamlanmış olur** ve olay aktarımı başlar.
 
 ---
 
 ## 3. Veri Modelleri (Event Payloads)
 
-Mobil cihaz, masaüstünü yönetirken JSON formatında veri paketleri gönderir. Tüm paketlerde `t` (type/tür) parametresi, paketin amacını belirler. İletişimde boyut ufak tutularak minimum gecikme amaçlanmıştır.
+Mobil cihaz, masaüstünü yönetirken eylemin kritiklik seviyesine göre UDP veya WebSocket kullanır. Tüm paketlerde `t` (type/tür) parametresi, paketin amacını belirler. 
 
-### A. Fare Hareketi (Mouse Move)
-Trackpad'te parmak gezdirildiğinde saniyede belirlenen FPS (max 120 e kadar) hızında akar.
-- `t`: "M" (Move)
-- `x`: Yatay eksendeki delta (bağıl değişim). Pozitif sağa, negatif sola.
-- `y`: Dikey eksendeki delta (bağıl değişim). Pozitif aşağı, negatif yukarı.
+### A. KRİTİK OLAYLAR (WEBSOCKET ÜZERİNDEN GÖNDERİLİR)
+Bu olayların masaüstüne kesin ulaşması gerektiği için **WebSocket** üzerinden JSON formatında gönderilir.
 
-**Örnek:**
-```json
-{ "t": "M", "x": 12.5, "y": -4.2 }
-```
-
-### B. Fare Tıklaması (Mouse Click)
+#### Fare Tıklaması (Mouse Click)
 Tek tıklama, sağ tıklama gibi eylemler tetiklendiğinde.
 - `t`: "C" (Click)
 - `b`: Tuş indeksi (`0`: Sol tık, `1`: Sağ tık)
 
-**Örnek Sol Tık (Tek Parmak Tıklaması):**
+**Örnek WebSocket Mesajı:**
 ```json
 { "t": "C", "b": 0 }
 ```
-**Örnek Sağ Tık (Çift Parmak Tıklaması):**
-```json
-{ "t": "C", "b": 1 }
-```
 
-### C. Sürükleme (Drag)
-Çift tıklayıp sürükleme yapıldığında (örneğin pencere taşıma veya metin seçimi) `DRAG` payload'ı gönderilir.
-- `t`: "DRAG"
-- `x`: Yatay eksendeki delta.
-- `y`: Dikey eksendeki delta.
+#### Sürükleme Başlangıcı ve Bitişi (Drag Start / End)
+Bir nesneyi tutma ve bırakma anları kritik olduğundan WebSocket üzerinden iletilir. Sürükleme başlangıcında Host farenin sol tuşuna basılı tutmalı, bitişinde ise bırakmalıdır.
+- Başlangıç `t`: "DRAG_START"
+- Bitiş `t`: "DRAG_END"
 
-**Örnek:**
+**Örnek WebSocket Mesajları:**
 ```json
-{ "t": "DRAG", "x": 10.0, "y": 2.5 }
+{ "t": "DRAG_START" }
 ```
-Sürükleme işlemi sonlandığında ise `DRAG_END` gönderilir.
 ```json
 { "t": "DRAG_END" }
 ```
 
-### C. Kaydırma (Scroll)
+### B. AKICI OLAYLAR (UDP ÜZERİNDEN GÖNDERİLİR)
+Hızlı hareketler (gecikmeyi önlemek için) ve paket kaybının tolere edilebileceği durumlar **UDP** üzerinden Host'un `data_port` (Örn: 44444) adresine gönderilir.
+
+#### Fare Hareketi (Mouse Move)
+Trackpad'te parmak gezdirildiğinde saniyede yüksek FPS hızında akar.
+- `t`: "M" (Move)
+- `x`: Yatay eksendeki delta (bağıl değişim). Pozitif sağa, negatif sola.
+- `y`: Dikey eksendeki delta (bağıl değişim). Pozitif aşağı, negatif yukarı.
+
+**Örnek UDP Mesajı:**
+```json
+{ "t": "M", "x": 12.5, "y": -4.2 }
+```
+
+#### Kaydırma (Scroll)
 Trackpad üzerinde iki parmak kaydırıldığında, fare tekerleği (scroll) etkisi yapar.
 - `t`: "S" (Scroll)
 - `x`: Yatay scroll deltası.
 - `y`: Dikey scroll deltası.
 
-**Örnek:**
+**Örnek UDP Mesajı:**
 ```json
 { "t": "S", "x": 0.0, "y": 15.3 }
 ```
 
-### D. Parlaklık Sensörü / Özelleştirilmiş Komut (Dimmer)
-Dimmer sekmesindeki slider veya sensör üzerinden parlaklık değiştiğinde (Örn: PC'nin ekran parlaklığını telefonun algıladığı parlaklık seviyesiyle eşitlemek için kullanılabilir).
+#### Cihaz Sensörü/Dimmer (Opsiyonel)
 - `t`: "D" (Dim)
 - `v`: 0.0 (en karanlık) ile 1.0 (en aydınlık) arasında bir değer.
 
-**Örnek:**
+**Örnek UDP Mesajı:**
 ```json
 { "t": "D", "v": 0.45 }
 ```
 
 ## Önerilen Masaüstü Yazılım Akışı
-1. `44444` portunu dinleyen asenkron bir UDP Thread'i başlat.
-2. Yayın (Broadcast) paketi geldiğinde içindeki JSON'ı parse et.
-3. Gelen `id` önceden güveniliyorsa, hemen verilen `ip` ve `port` a TCP bağlantısı dene.
-4. Güvenilmiyorsa Arayüzde "Yeni Cihaz Bulundu: [name]" butonu çıkar, kullanıcı kabul edince TCP kanalını aç.
-5. TCP Socket açıldıktan veya UDP kanalı kabul edildikten sonra `M, C, S, D` tiplerindeki payload'ları alarak İşletim Sistemi API'leri üzerinden fare veya ekran komutlarına (Örn: Windows API / User32.dll veya Python Pynput) dönüştür.
+1. `44444` portunu UDP için, `44445` portunu WebSocket Sunucusu için dinlemeye başla.
+2. UDP'den Keşif (Broadcast) paketi geldiğinde, cihaza onay veriliyorsa UDP üzerinden `discovery_ack` yanıtını don.
+3. Mobil cihaz WebSocket (`ws://[HOST_IP]:44445`) üzerinden bağlandığında eşleşmeyi kesinleştir. Gelen cihaz ID'sini kaydet ki başka paketlerle karışmasın.
+4. **WebSocket dinleyicisinde:** Gelen `C`, `DRAG_START` ve `DRAG_END` komutlarını yakalayarak İşletim Sistemi API'leri üzerinden tıklama bas/bırak (mouse down/up) komutlarına dönüştür.
+5. **UDP dinleyicisinde:** Gelen `M`, `S`, `D` paketlerini yakalayarak anlık imleç hareketini ve tekerlek kaydırmasını gerçekleştir. (Sadece WebSocket üzerinden bağlı / handshake yapılmış cihazların IP'sinden gelen UDP paketlerini işle).

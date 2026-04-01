@@ -7,6 +7,7 @@ import 'package:motion_bridge/constants/app_styles.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:rxdart/rxdart.dart';
 import '../../../utils/network_manager.dart';
+import 'dimmer_slider.dart';
 
 class DimmerState {
   final double value;
@@ -155,41 +156,9 @@ class DimmerView extends ConsumerWidget {
 
                 Expanded(
                   child: Center(
-                    child: SizedBox(
+                    child: DimmerSlider(
                       width: 120,
                       height: MediaQuery.of(context).size.height * 0.5,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(32),
-                        child: BackdropFilter(
-                          filter: AppStyles.backdropFilter,
-                          child: Container(
-                            decoration: AppStyles.glassDecoration(context),
-                            child: RotatedBox(
-                              quarterTurns: 3,
-                              child: SliderTheme(
-                                data: SliderThemeData(
-                                  trackHeight: 120, // Tüm alanı kapla
-                                  activeTrackColor: theme.colorScheme.secondary
-                                      .withValues(alpha: 0.5),
-                                  inactiveTrackColor: Colors.transparent,
-                                  thumbColor: theme.colorScheme.primary,
-                                  thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 0,
-                                  ),
-                                  overlayShape: const RoundSliderOverlayShape(
-                                    overlayRadius: 0,
-                                  ),
-                                  trackShape: _CustomTrackShape(),
-                                ),
-                                child: Slider(
-                                  value: state.value,
-                                  onChanged: notifier.updateDimmer,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
                     ),
                   ),
                 ),
@@ -211,23 +180,5 @@ class DimmerView extends ConsumerWidget {
         ],
       ),
     );
-  }
-}
-
-class _CustomTrackShape extends RoundedRectSliderTrackShape {
-  @override
-  Rect getPreferredRect({
-    required RenderBox parentBox,
-    Offset offset = Offset.zero,
-    required SliderThemeData sliderTheme,
-    bool isEnabled = false,
-    bool isDiscrete = false,
-  }) {
-    final double trackHeight = sliderTheme.trackHeight ?? 0;
-    final double trackLeft = offset.dx;
-    final double trackTop =
-        offset.dy + (parentBox.size.height - trackHeight) / 2;
-    final double trackWidth = parentBox.size.width;
-    return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
   }
 }

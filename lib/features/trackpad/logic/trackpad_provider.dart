@@ -30,6 +30,7 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
 
   DateTime _lastPointerUpTime = DateTime.fromMillisecondsSinceEpoch(0);
   bool _isDragMode = false;
+  bool _dragStartSent = false;
 
   // Throttling state
   DateTime _lastSendTime = DateTime.now();
@@ -85,6 +86,8 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
           .inMilliseconds;
       if (timeSinceLastUp < 300) {
         _isDragMode = true;
+        _dragStartSent = true;
+        _send("DRAG_START", {});
       } else {
         _isDragMode = false;
       }
@@ -106,7 +109,8 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
       final duration = DateTime.now()
           .difference(_lastScaleStartTime)
           .inMilliseconds;
-      if (duration < 250 && !_movedSignificantly) {
+      // Eğer drag modundaysak ve anlamlı bir şekilde sürüklendiysek tap yapma
+      if (duration < 250 && !_movedSignificantly && !_dragStartSent) {
         if (_maxPointersInSequence == 1) {
           onLeftTap();
         } else if (_maxPointersInSequence == 2) {
@@ -164,8 +168,9 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
     _flushAccumulated();
 
     bool wasDragMode = _isDragMode;
-    if (_isDragMode && _movedSignificantly) {
+    if (_isDragMode && _dragStartSent) {
       _send("DRAG_END", {});
+      _dragStartSent = false;
     }
     if (details.pointerCount == 0 || _activePointers <= 0) {
       _isDragMode = false;
@@ -173,21 +178,11 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
 
     state = state.copyWith(isInteracting: false);
 
-    final duration = DateTime.now()
-        .difference(_lastScaleStartTime)
-        .inMilliseconds;
-    if (_activePointers == 1 &&
-        duration < 250 &&
-        details.velocity.pixelsPerSecond.distance < 100) {
-      // Tap yakalama - logic can be added later if needed
-    }
-
     if (details.pointerCount == 0 && _activePointers > 0) {
       _activePointers = 0;
     }
 
     _currentVelocity = details.velocity.pixelsPerSecond / 60;
-    // Reduce inertia threshold briefly if maxFps is low, but usually standard 1.0 is fine
     if (_currentVelocity.distance < 1.0 || wasDragMode) return;
 
     _startInertia();
@@ -204,9 +199,6 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
         timer.cancel();
         return;
       }
-      // Decay velocity based on frame rate (rough approximation)
-      // Standard was 16ms decay of 0.90
-      // if interval is 33ms (30fps), it should decay twice as much.
       final decayMultiplier = intervalMs / 16.0;
       final actualDecay = 1.0 - ((1.0 - 0.90) * decayMultiplier);
 
