@@ -32,6 +32,8 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   bool _isDragMode = false;
   bool _dragStartSent = false;
   bool _lastActionWasTap = false;
+  bool _waitingForDrag = false;
+  Timer? _dragWaitTimer;
   DateTime _lastScrollTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   // Throttling state
@@ -62,6 +64,14 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   }
 
   void _flushAccumulated() {
+    if (_waitingForDrag && (_accumulatedDx.abs() > 1 || _accumulatedDy.abs() > 1)) {
+      _dragWaitTimer?.cancel();
+      _waitingForDrag = false;
+      _isDragMode = true;
+      _dragStartSent = true;
+      _send("DRAG_START", {});
+    }
+
     if (_accumulatedDx != 0 || _accumulatedDy != 0) {
       if (_lastPointerCount == 1) {
         if (DateTime.now().difference(_lastScrollTime).inMilliseconds < 300) {
@@ -98,14 +108,27 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
       final timeSinceLastUp = DateTime.now()
           .difference(_lastPointerUpTime)
           .inMilliseconds;
+      // 300ms window for double tap or drag
       if (timeSinceLastUp < 300 && _lastActionWasTap) {
-        _isDragMode = true;
-        _dragStartSent = true;
-        _send("DRAG_START", {});
+        _waitingForDrag = true;
+        _isDragMode = false;
+        _dragStartSent = false;
+        
+        _dragWaitTimer?.cancel();
+        // Wait 150ms to see if user holds the finger (Drag) or releases quickly (Double Tap)
+        _dragWaitTimer = Timer(const Duration(milliseconds: 150), () {
+          if (_waitingForDrag && _activePointers == 1) {
+            _waitingForDrag = false;
+            _isDragMode = true;
+            _dragStartSent = true;
+            _send("DRAG_START", {});
+          }
+        });
       } else {
         _isDragMode = false;
         _dragStartSent = false;
         _lastActionWasTap = false;
+        _waitingForDrag = false;
       }
 
       _lastScaleStartTime = DateTime.now();
@@ -130,21 +153,30 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
       _activePointers = 0;
       _lastPointerUpTime = DateTime.now();
 
-      final duration = DateTime.now()
-          .difference(_lastScaleStartTime)
-          .inMilliseconds;
-      if (duration < 250 && !_movedSignificantly && !_dragStartSent) {
-        if (_maxPointersInSequence == 1) {
-          onLeftTap();
-          _lastActionWasTap = true;
-        } else if (_maxPointersInSequence == 2) {
-          onRightTap();
-          _lastActionWasTap = false;
+      _dragWaitTimer?.cancel();
+      
+      if (_waitingForDrag) {
+        // Quick release on the second tap -> Double Tap!
+        _waitingForDrag = false;
+        _lastActionWasTap = false;
+        onDoubleTap();
+      } else {
+        final duration = DateTime.now()
+            .difference(_lastScaleStartTime)
+            .inMilliseconds;
+        if (duration < 250 && !_movedSignificantly && !_dragStartSent) {
+          if (_maxPointersInSequence == 1) {
+            onLeftTap();
+            _lastActionWasTap = true;
+          } else if (_maxPointersInSequence == 2) {
+            onRightTap();
+            _lastActionWasTap = false;
+          } else {
+            _lastActionWasTap = false;
+          }
         } else {
           _lastActionWasTap = false;
         }
-      } else {
-        _lastActionWasTap = false;
       }
     }
   }
@@ -284,6 +316,11 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   void onRightTap() {
     AppHaptics.mediumImpact();
     _send("C", {"b": 1});
+  }
+
+  void onDoubleTap() {
+    AppHaptics.mediumImpact();
+    _send("DOUBLE_CLICK", {}); // or "DOUBLE_TAP" depending on backend
   }
 }
 
