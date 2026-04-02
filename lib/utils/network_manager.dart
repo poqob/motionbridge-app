@@ -34,10 +34,12 @@ class NetworkManager {
     _loadPairedHosts();
   }
 
-  RawDatagramSocket?
-  _socket; // localPort = 5000 (Listening for discovery_ack & Sending pairing_request/UDP data)
-  RawDatagramSocket?
-  _discoverySocket; // port = 44446 (Listening to host_announcement)
+  // List of sockets for sending UDP data and receiving 'discovery_ack' (localPort = 5000)
+  final List<RawDatagramSocket> _senderSockets = [];
+
+  // Listening to host_announcement on multiple interfaces to support Hotspot
+  final List<RawDatagramSocket> _discoverySockets = [];
+
   WebSocket? _webSocket;
   Timer? _reconnectTimer;
   Timer? _staleHostTimer;
@@ -93,14 +95,17 @@ class NetworkManager {
   void sendPacket(Map<String, dynamic> data) {
     if (_currentState != NetworkConnectionState.connected ||
         _activeHost == null ||
-        _socket == null) {
+        _senderSockets.isEmpty) {
       return;
     }
 
     try {
       final jsonString = jsonEncode(data);
       String type = data['t'] ?? '';
-      if (type == 'C' || type == 'DRAG_START' || type == 'DRAG_END' || type == 'SWIPE_3') {
+      if (type == 'C' ||
+          type == 'DRAG_START' ||
+          type == 'DRAG_END' ||
+          type == 'SWIPE_3') {
         if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
           _webSocket!.add(jsonString);
           if (kDebugMode) print("Sent via WebSocket: $jsonString");
@@ -108,11 +113,13 @@ class NetworkManager {
       } else {
         if (kDebugMode) print("Sent via UDP: $jsonString");
         final bytes = utf8.encode(jsonString);
-        _socket?.send(
-          bytes,
-          InternetAddress(_activeHost!.ip),
-          _activeHost!.dataPort,
-        );
+        for (var socket in _senderSockets) {
+          socket.send(
+            bytes,
+            InternetAddress(_activeHost!.ip),
+            _activeHost!.dataPort,
+          );
+        }
       }
     } catch (e) {
       if (kDebugMode) print("Packet send error: $e");
@@ -137,36 +144,90 @@ class NetworkManager {
     _discoveredHostsController.add(List.from(_discoveredHosts));
 
     try {
-      // Primary socket for sending UDP data and receiving 'discovery_ack'
-      _socket = await RawDatagramSocket.bind(
-        InternetAddress.anyIPv4,
-        localPort,
-      );
-      _socket?.broadcastEnabled = true;
-      _socket?.listen((RawSocketEvent event) {
-        if (event == RawSocketEvent.read) {
-          final datagram = _socket?.receive();
-          if (datagram != null) {
-            final msg = utf8.decode(datagram.data);
-            _handleIncomingAck(msg, datagram.address);
-          }
+      // Helper to bind a sender socket (localPort)
+      void setupSenderSocket(InternetAddress address) async {
+        try {
+          final socket = await RawDatagramSocket.bind(
+            address,
+            localPort,
+            reuseAddress: true,
+            reusePort: Platform.isIOS || Platform.isMacOS,
+          );
+          socket.broadcastEnabled = true;
+          socket.listen((RawSocketEvent event) {
+            if (event == RawSocketEvent.read) {
+              final datagram = socket.receive();
+              if (datagram != null) {
+                final msg = utf8.decode(datagram.data);
+                _handleIncomingAck(msg, datagram.address);
+              }
+            }
+          });
+          _senderSockets.add(socket);
+        } catch (e) {
+          if (kDebugMode)
+            print("Sender socket bind failed on \${address.address}: \$e");
         }
-      });
+      }
 
-      // Socket to listen to Host Broadcasts
-      _discoverySocket = await RawDatagramSocket.bind(
-        InternetAddress.anyIPv4,
-        hostBroadcastPort,
+      // Helper to bind a discovery socket (hostBroadcastPort)
+      void setupDiscoverySocket(InternetAddress address) async {
+        try {
+          final socket = await RawDatagramSocket.bind(
+            address,
+            hostBroadcastPort,
+            reuseAddress: true,
+            reusePort:
+                Platform.isIOS ||
+                Platform
+                    .isMacOS, // reusePort behaves better for broadcast receivers
+          );
+          socket.broadcastEnabled = true;
+          socket.listen((RawSocketEvent event) {
+            if (event == RawSocketEvent.read) {
+              final datagram = socket.receive();
+              if (datagram != null) {
+                final msg = utf8.decode(datagram.data);
+                _handleIncomingBroadcast(msg, datagram.address);
+              }
+            }
+          });
+          _discoverySockets.add(socket);
+        } catch (e) {
+          if (kDebugMode)
+            print("Discovery socket bind failed on \${address.address}: \$e");
+        }
+      }
+
+      final interfaces = await NetworkInterface.list(
+        type: InternetAddressType.IPv4,
+        includeLinkLocal: true,
       );
-      _discoverySocket?.listen((RawSocketEvent event) {
-        if (event == RawSocketEvent.read) {
-          final datagram = _discoverySocket?.receive();
-          if (datagram != null) {
-            final msg = utf8.decode(datagram.data);
-            _handleIncomingBroadcast(msg, datagram.address);
+
+      // This is the critical fix for mobile Hotspot / Tethering networks
+      setupDiscoverySocket(InternetAddress.anyIPv4);
+
+      if (interfaces.isEmpty) {
+        setupSenderSocket(InternetAddress.anyIPv4);
+      } else {
+        bool senderBound = false;
+        for (var interface in interfaces) {
+          // Skip loopback (127.0.0.1) to avoid clutter, as the PC won't be there
+          if (interface.name.contains('lo') && interfaces.length > 1) continue;
+
+          for (var addr in interface.addresses) {
+            setupSenderSocket(addr);
+            // In Android sometimes broadcast packet listening also fails on anyIPv0 if hotspot is active.
+            // Bind listeners for interfaces as well.
+            setupDiscoverySocket(addr);
+            senderBound = true;
           }
         }
-      });
+
+        if (!senderBound) {
+          setupSenderSocket(InternetAddress.anyIPv4);
+        }
+      }
 
       // Timer to clean up stale hosts that stopped broadcasting
       _staleHostTimer = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -229,8 +290,12 @@ class NetworkManager {
 
         // If we are waiting for approval from this specific host, try to connect via WS!
         if (_currentState == NetworkConnectionState.waitingApproval &&
-            _activeHost?.ip == senderIp.address) {
-          _connectWebSocket(_activeHost!.ip, wsPort);
+            _activeHost != null) {
+          // Compare either IP or hostname in case IP changed or was obscured
+          if (_activeHost!.ip == senderIp.address ||
+              _activeHost!.hostName == json['name']) {
+            _connectWebSocket(_activeHost!.ip, wsPort);
+          }
         }
       } else if (json['type'] == 'disconnect') {
         disconnect();
@@ -250,18 +315,20 @@ class NetworkManager {
     _setState(NetworkConnectionState.waitingApproval);
 
     // Send pairing_request to host's data port
-    if (_socket != null) {
+    if (_senderSockets.isNotEmpty) {
       final payload = {
         "type": "pairing_request",
         "id": deviceId,
         "name": deviceName,
         "port": localPort,
       };
-      _socket!.send(
-        utf8.encode(jsonEncode(payload)),
-        InternetAddress(host.ip),
-        host.dataPort,
-      );
+      for (var socket in _senderSockets) {
+        socket.send(
+          utf8.encode(jsonEncode(payload)),
+          InternetAddress(host.ip),
+          host.dataPort,
+        );
+      }
     }
   }
 
@@ -332,10 +399,15 @@ class NetworkManager {
     _staleHostTimer?.cancel();
     _staleHostTimer = null;
 
-    _socket?.close();
-    _socket = null;
-    _discoverySocket?.close();
-    _discoverySocket = null;
+    for (final s in _senderSockets) {
+      s.close();
+    }
+    _senderSockets.clear();
+
+    for (final s in _discoverySockets) {
+      s.close();
+    }
+    _discoverySockets.clear();
 
     if (_currentState != NetworkConnectionState.disconnected) {
       _setState(NetworkConnectionState.disconnected);
