@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../logic/trackpad_provider.dart';
+import '../logic/dictation_provider.dart';
 import '../../dimmer/ui/dimmer_view.dart'; // import dimmerProvider
 
 class TrackpadView extends ConsumerWidget {
@@ -14,6 +15,8 @@ class TrackpadView extends ConsumerWidget {
 
     // Read brightness for dark mode dots
     final dimmerState = ref.watch(dimmerProvider);
+    final dictationState = ref.watch(dictationProvider);
+    final dictationNotifier = ref.read(dictationProvider.notifier);
 
     return Container(
       color: theme.colorScheme.surface,
@@ -43,6 +46,38 @@ class TrackpadView extends ConsumerWidget {
                 onScaleEnd: notifier.onScaleEnd,
                 behavior: HitTestBehavior.opaque,
                 child: Container(color: Colors.transparent),
+              ),
+            ),
+          ),
+
+          // Dictation Mic Button
+          Positioned(
+            bottom: 24,
+            left: 24,
+            child: IgnorePointer(
+              ignoring: false,
+              child: Material(
+                color: dictationState.isListening
+                    ? Colors.red.withValues(alpha: 0.8)
+                    : theme.colorScheme.secondaryContainer.withValues(
+                        alpha: 0.8,
+                      ),
+                shape: const CircleBorder(),
+                elevation: 4,
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: dictationNotifier.toggleListening,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Icon(
+                      dictationState.isListening ? Icons.mic : Icons.mic_none,
+                      color: dictationState.isListening
+                          ? Colors.white
+                          : theme.colorScheme.onSecondaryContainer,
+                      size: 28,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

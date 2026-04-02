@@ -105,7 +105,8 @@ class NetworkManager {
       if (type == 'C' ||
           type == 'DRAG_START' ||
           type == 'DRAG_END' ||
-          type == 'SWIPE_3') {
+          type == 'SWIPE_3' ||
+          type == 'DICT') {
         if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
           _webSocket!.add(jsonString);
           if (kDebugMode) print("Sent via WebSocket: $jsonString");
@@ -124,6 +125,11 @@ class NetworkManager {
     } catch (e) {
       if (kDebugMode) print("Packet send error: $e");
     }
+  }
+
+  void sendDictation(String text) {
+    if (text.trim().isEmpty) return;
+    sendPacket({"t": "DICT", "text": text, "is_final": true});
   }
 
   void _setState(NetworkConnectionState state) {
