@@ -58,6 +58,9 @@ class NetworkManager {
   NetworkConnectionState get currentState => _currentState;
 
   final List<DiscoveredHost> _discoveredHosts = [];
+  List<DiscoveredHost> get discoveredHosts =>
+      List.unmodifiable(_discoveredHosts);
+
   List<String> _pairedHostIps = [];
   String? _lastPairedHostIp;
 
@@ -257,19 +260,30 @@ class NetworkManager {
     try {
       final json = jsonDecode(msg);
       if (json['type'] == 'host_announcement') {
-        final hostName = json['name'] ?? "Unknown Host";
-        final dataPort = json['port'] ?? 44444;
+        final hostName = json['host_name'] ?? "Unknown Host";
+        final dataPort = json['data_port'] ?? 44444;
+        final wsPort = json['ws_port'] ?? 44445;
 
         final existingIdx = _discoveredHosts.indexWhere(
           (h) => h.ip == senderIp.address,
         );
         if (existingIdx >= 0) {
           _discoveredHosts[existingIdx].lastSeen = DateTime.now();
+          // Update ports and name in case they changed
+          _discoveredHosts[existingIdx] = DiscoveredHost(
+            ip: senderIp.address,
+            hostName: hostName,
+            dataPort: dataPort,
+            wsPort: wsPort,
+            lastSeen: DateTime.now(),
+          );
+          _discoveredHostsController.add(List.from(_discoveredHosts));
         } else {
           final newHost = DiscoveredHost(
             ip: senderIp.address,
             hostName: hostName,
             dataPort: dataPort,
+            wsPort: wsPort,
             lastSeen: DateTime.now(),
           );
           _discoveredHosts.add(newHost);
@@ -291,19 +305,7 @@ class NetworkManager {
     try {
       final json = jsonDecode(msg);
 
-      if (json['type'] == 'discovery_ack') {
-        final wsPort = json['ws_port'] ?? 44445;
-
-        // If we are waiting for approval from this specific host, try to connect via WS!
-        if (_currentState == NetworkConnectionState.waitingApproval &&
-            _activeHost != null) {
-          // Compare either IP or hostname in case IP changed or was obscured
-          if (_activeHost!.ip == senderIp.address ||
-              _activeHost!.hostName == json['name']) {
-            _connectWebSocket(_activeHost!.ip, wsPort);
-          }
-        }
-      } else if (json['type'] == 'disconnect') {
+      if (json['type'] == 'disconnect') {
         disconnect();
       }
     } catch (e) {
@@ -320,22 +322,7 @@ class NetworkManager {
 
     _setState(NetworkConnectionState.waitingApproval);
 
-    // Send pairing_request to host's data port
-    if (_senderSockets.isNotEmpty) {
-      final payload = {
-        "type": "pairing_request",
-        "id": deviceId,
-        "name": deviceName,
-        "port": localPort,
-      };
-      for (var socket in _senderSockets) {
-        socket.send(
-          utf8.encode(jsonEncode(payload)),
-          InternetAddress(host.ip),
-          host.dataPort,
-        );
-      }
-    }
+    _connectWebSocket(host.ip, host.wsPort);
   }
 
   Future<void> _connectWebSocket(String ip, int port) async {
@@ -345,24 +332,49 @@ class NetworkManager {
         wsUrl,
       ).timeout(const Duration(seconds: 5));
 
+      // 1. Send Connection Request immediately
+      _webSocket!.add(
+        jsonEncode({
+          "type": "connection_request",
+          "device_id": deviceId,
+          "device_name": deviceName,
+        }),
+      );
+
       _webSocket!.listen(
         (message) {
           try {
             final json = jsonDecode(message);
-            if (json['type'] == 'disconnect') {
+            if (json['type'] == 'connection_rejected') {
+              if (kDebugMode) print("Connection rejected: \${json['reason']}");
               disconnect();
-            } else if (json['type'] == 'connected_ack') {
+            } else if (json['type'] == 'connection_accepted') {
+              final String? pairingCode = json['pairing_code'];
+              if (pairingCode != null) {
+                // 2. Send Pairing Request with code immediately
+                _webSocket!.add(
+                  jsonEncode({
+                    "type": "pairing_request",
+                    "device_id": deviceId,
+                    "pairing_code": pairingCode,
+                  }),
+                );
+              }
+            } else if (json['type'] == 'pairing_success') {
+              // 3. Pairing Successful, we are connected!
               _savePairedHost(ip);
               _setState(NetworkConnectionState.connected);
+            } else if (json['type'] == 'disconnect') {
+              disconnect();
             }
-          } catch (e) {}
+          } catch (e) {
+            // Ignore parse errors
+          }
         },
         onDone: () => _handleWsDisconnect(),
         onError: (e) => _handleWsDisconnect(),
       );
 
-      await _savePairedHost(ip);
-      _setState(NetworkConnectionState.connected);
       _reconnectTimer?.cancel();
     } catch (e) {
       if (kDebugMode) print("WebSocket connection failed: $e");
@@ -393,6 +405,8 @@ class NetworkManager {
     _webSocket?.close();
     _webSocket = null;
     _reconnectTimer?.cancel();
+    _discoveredHosts.clear(); // Clear list so we see fresh hosts
+    _discoveredHostsController.add([]);
 
     _setState(
       NetworkConnectionState.discovering,

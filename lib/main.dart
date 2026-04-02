@@ -362,170 +362,209 @@ class _DeviceDiscoveryContentState extends State<_DeviceDiscoveryContent> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final status = NetworkManager().currentState;
-    final activeHost = NetworkManager().activeHost;
 
-    if (status == NetworkConnectionState.connected && activeHost != null) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return StreamBuilder<NetworkConnectionState>(
+      stream: NetworkManager().connectionStateStream,
+      initialData: NetworkManager().currentState,
+      builder: (context, snapshot) {
+        final status = snapshot.data ?? NetworkConnectionState.disconnected;
+        final activeHost = NetworkManager().activeHost;
+
+        if (status == NetworkConnectionState.connected && activeHost != null) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.wifi_tethering_rounded,
-                color: Color(0xFF4CAF50),
-                size: 20,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.wifi_tethering_rounded,
+                    color: Color(0xFF4CAF50),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Bağlı: ${activeHost.hostName}",
+                    style: theme.textTheme.displayMedium?.copyWith(
+                      fontSize: 16,
+                      color: const Color(0xFF4CAF50),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
+              const SizedBox(height: 8),
               Text(
-                "Bağlı: ${activeHost.hostName}",
-                style: theme.textTheme.displayMedium?.copyWith(
-                  fontSize: 16,
-                  color: const Color(0xFF4CAF50),
-                ),
+                activeHost.ip,
+                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+              ),
+              const Divider(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      NetworkManager().disconnect();
+                      // The StreamBuilder will automatically rebuild the UI
+                      if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
+                        Navigator.of(context).pop();
+                      } else if (ModalRoute.of(context)?.isCurrent != true) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    icon: const Icon(Icons.link_off),
+                    label: const Text("Bağlantıyı Kes"),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      NetworkManager().unpairHost();
+                      if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
+                        Navigator.of(context).pop();
+                      } else if (ModalRoute.of(context)?.isCurrent != true) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    icon: const Icon(Icons.delete_forever),
+                    label: const Text("Ağı Unut"),
+                  ),
+                ],
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            activeHost.ip,
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
-          ),
-          const Divider(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  NetworkManager().disconnect();
-                  setState(() {});
-                  if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
-                    Navigator.of(context).pop();
-                  } else if (ModalRoute.of(context)?.isCurrent != true) {
-                    // close bottom sheet
-                    Navigator.of(context).pop();
-                  }
-                },
-                icon: const Icon(Icons.link_off),
-                label: const Text("Bağlantıyı Kes"),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  NetworkManager().unpairHost();
-                  setState(() {});
-                  if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
-                    Navigator.of(context).pop();
-                  } else if (ModalRoute.of(context)?.isCurrent != true) {
-                    // check if it's in a modal route?
-                    Navigator.of(context).pop();
-                  }
-                },
-                icon: const Icon(Icons.delete_forever),
-                label: const Text("Ağı Unut"),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
+          );
+        }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        StreamBuilder<NetworkConnectionState>(
-          stream: NetworkManager().connectionStateStream,
-          initialData: NetworkConnectionState.disconnected,
-          builder: (context, snapshot) {
-            final snapStatus = snapshot.data;
-            String msg = "Ağ Aranıyor...";
-            Color color = Colors.orange;
-
-            if (snapStatus == NetworkConnectionState.waitingApproval) {
-              msg = "Masaüstünde Onay Bekleniyor...";
-              color = Colors.blueAccent;
-            } else if (snapStatus == NetworkConnectionState.disconnected) {
-              msg = "Bağlı Değil";
-              color = Colors.red;
-            }
-
-            return Row(
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.wifi_find_rounded, color: color, size: 20),
+                Icon(
+                  Icons.wifi_find_rounded,
+                  color: status == NetworkConnectionState.waitingApproval
+                      ? Colors.blueAccent
+                      : (status == NetworkConnectionState.disconnected
+                            ? Colors.red
+                            : Colors.orange),
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Text(
-                  msg,
+                  status == NetworkConnectionState.waitingApproval
+                      ? "Masaüstünde Onay Bekleniyor..."
+                      : (status == NetworkConnectionState.disconnected
+                            ? "Bağlı Değil"
+                            : "Ağ Aranıyor..."),
                   style: theme.textTheme.displayMedium?.copyWith(
                     fontSize: 16,
-                    color: color,
+                    color: status == NetworkConnectionState.waitingApproval
+                        ? Colors.blueAccent
+                        : (status == NetworkConnectionState.disconnected
+                              ? Colors.red
+                              : Colors.orange),
                   ),
                 ),
               ],
-            );
-          },
-        ),
-        const Divider(height: 32),
-        Expanded(
-          child: StreamBuilder<List<DiscoveredHost>>(
-            stream: NetworkManager().discoveredHostsStream,
-            initialData: const [],
-            builder: (context, snapshot) {
-              final hosts = snapshot.data ?? [];
-              if (hosts.isEmpty) {
-                return Center(
-                  child: Text(
-                    "Ağda cihaz bulunamadı.\nMasaüstü uygulamanızın açık olduğuna emin olun.",
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey,
-                    ),
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                itemCount: hosts.length,
-                itemBuilder: (context, index) {
-                  final host = hosts[index];
-                  return ListTile(
-                    leading: const Icon(Icons.computer_rounded, size: 32),
-                    title: Text(
-                      host.hostName,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+            ),
+            const Divider(height: 32),
+            Expanded(
+              child: status == NetworkConnectionState.waitingApproval
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 24),
+                          Text(
+                            "Masaüstü Kullanıcısından\nBağlantı Onayı Bekleniyor...",
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                            onPressed: () {
+                              NetworkManager().disconnect();
+                            },
+                            icon: const Icon(Icons.close),
+                            label: const Text("İptal Et"),
+                          ),
+                        ],
                       ),
-                    ),
-                    subtitle: Text(host.ip),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.cable_rounded),
-                      onPressed: () {
-                        NetworkManager().connectToHost(host);
-                        Navigator.pop(context);
+                    )
+                  : StreamBuilder<List<DiscoveredHost>>(
+                      stream: NetworkManager().discoveredHostsStream,
+                      initialData: NetworkManager().discoveredHosts,
+                      builder: (context, snapshot) {
+                        final hosts = snapshot.data ?? [];
+                        if (hosts.isEmpty) {
+                          return Center(
+                            child: Text(
+                              "Ağda cihaz bulunamadı.\nMasaüstü uygulamanızın açık olduğuna emin olun.",
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.grey,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return ListView.builder(
+                          itemCount: hosts.length,
+                          itemBuilder: (context, index) {
+                            final host = hosts[index];
+                            return ListTile(
+                              leading: const Icon(
+                                Icons.computer_rounded,
+                                size: 32,
+                              ),
+                              title: Text(
+                                host.hostName,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(host.ip),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              trailing: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blueAccent,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.link, size: 18),
+                                label: const Text("Bağlan"),
+                                onPressed: () {
+                                  NetworkManager().connectToHost(host);
+                                },
+                              ),
+                              onTap: () {
+                                NetworkManager().connectToHost(host);
+                              },
+                            );
+                          },
+                        );
                       },
                     ),
-                    onTap: () {
-                      NetworkManager().connectToHost(host);
-                      Navigator.pop(context);
-                    },
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
