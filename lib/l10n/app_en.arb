@@ -5,6 +5,7 @@
   "deviceName": "Device Name",
   "trackpad": "Trackpad",
   "dimmer": "Dimmer",
+  "volume": "Volume",
   "gentlyMove": "Gently move or gesture",
   "autoDimSync": "Auto-Dim Sync",
   "maxPacketRate": "Max Packet Rate (FPS)",

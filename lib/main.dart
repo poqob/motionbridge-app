@@ -9,8 +9,10 @@ import 'features/dimmer/ui/dimmer_view.dart';
 import 'features/settings/logic/settings_provider.dart';
 import 'features/settings/ui/settings_view.dart';
 import 'features/dimmer/ui/dimmer_slider.dart';
+import 'features/volume/ui/volume_view.dart';
+import 'features/volume/ui/volume_slider.dart';
 
-enum InputMode { trackpad, dimmer }
+enum InputMode { trackpad, dimmer, volume }
 
 final inputModeProvider = NotifierProvider<InputModeNotifier, InputMode>(() {
   return InputModeNotifier();
@@ -139,6 +141,17 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
                   Navigator.pop(context);
                 },
               ),
+              _MenuTile(
+                title: loc.volume,
+                icon: Icons.volume_up_rounded,
+                isSelected: currentMode == InputMode.volume,
+                onTap: () {
+                  ref
+                      .read(inputModeProvider.notifier)
+                      .setMode(InputMode.volume);
+                  Navigator.pop(context);
+                },
+              ),
               const Divider(height: 32),
               _MenuTile(
                 title: loc.settings,
@@ -183,6 +196,7 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
     Widget activeView = switch (mode) {
       InputMode.trackpad => const TrackpadView(key: ValueKey('trackpad')),
       InputMode.dimmer => const DimmerView(key: ValueKey('dimmer')),
+      InputMode.volume => const VolumeView(key: ValueKey('volume')),
     };
 
     return Scaffold(
@@ -205,11 +219,19 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
               right: 80, // slightly left of the menu button
               top: 40,
               bottom: 40,
-              child: Center(
-                child: DimmerSlider(
-                  width: 100,
-                  height: MediaQuery.of(context).size.height * 0.7,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DimmerSlider(
+                    width: 100,
+                    height: MediaQuery.of(context).size.height * 0.7,
+                  ),
+                  const SizedBox(width: 24),
+                  VolumeSlider(
+                    width: 60,
+                    height: MediaQuery.of(context).size.height * 0.7,
+                  ),
+                ],
               ),
             ),
 

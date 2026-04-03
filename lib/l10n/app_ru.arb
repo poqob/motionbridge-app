@@ -6,6 +6,7 @@
   "deviceName": "Имя устройства",
   "trackpad": "Трекпад",
   "dimmer": "Диммер",
+  "volume": "Звук",
   "gentlyMove": "Аккуратно двигайте или используйте жесты",
   "autoDimSync": "Авто-яркость",
   "maxPacketRate": "Макс. частота пакетов (FPS)",

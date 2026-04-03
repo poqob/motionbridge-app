@@ -5,6 +5,7 @@
   "deviceName": "Cihaz Adı",
   "trackpad": "İzleme Dörtgeni",
   "dimmer": "Karartıcı",
+  "volume": "Ses",
   "gentlyMove": "Yavaşça dokunun veya kaydırın",
   "autoDimSync": "Oto-Parlaklık Senkronu",
   "maxPacketRate": "Maksimum Paket Hızı (FPS)",

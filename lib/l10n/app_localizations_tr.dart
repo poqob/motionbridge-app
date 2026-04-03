@@ -24,6 +24,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get dimmer => 'Karartıcı';
 
   @override
+  String get volume => 'Ses';
+
+  @override
   String get gentlyMove => 'Yavaşça dokunun veya kaydırın';
 
   @override

@@ -130,6 +130,12 @@ abstract class AppLocalizations {
   /// **'Dimmer'**
   String get dimmer;
 
+  /// No description provided for @volume.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get volume;
+
   /// No description provided for @gentlyMove.
   ///
   /// In en, this message translates to:

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:motion_bridge/constants/app_styles.dart';
-import 'dimmer_view.dart';
+import '../logic/volume_provider.dart';
 
-class DimmerSlider extends ConsumerWidget {
+class VolumeSlider extends ConsumerWidget {
   final double width;
   final double height;
 
-  const DimmerSlider({super.key, this.width = 120, required this.height});
+  const VolumeSlider({super.key, this.width = 120, required this.height});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(dimmerProvider);
-    final notifier = ref.read(dimmerProvider.notifier);
+    final state = ref.watch(volumeProvider);
+    final notifier = ref.read(volumeProvider.notifier);
     final theme = Theme.of(context);
 
     return SizedBox(
@@ -35,7 +35,9 @@ class DimmerSlider extends ConsumerWidget {
                         alpha: 0.5,
                       ),
                       inactiveTrackColor: Colors.transparent,
-                      thumbColor: theme.colorScheme.primary,
+                      thumbColor: state.isMuted
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.primary,
                       thumbShape: const RoundSliderThumbShape(
                         enabledThumbRadius: 0,
                       ),
@@ -45,8 +47,13 @@ class DimmerSlider extends ConsumerWidget {
                       trackShape: _CustomTrackShape(),
                     ),
                     child: Slider(
+                      min: 0,
+                      max: 100,
                       value: state.value,
-                      onChanged: notifier.updateDimmer,
+                      onChanged: state.isMuted ? null : notifier.updateVolume,
+                      onChangeEnd: state.isMuted
+                          ? null
+                          : (_) => notifier.flushVolume(),
                     ),
                   ),
                 ),
@@ -59,15 +66,21 @@ class DimmerSlider extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.light_mode_rounded,
-                          color: Colors.white,
+                          state.isMuted
+                              ? Icons.volume_off_rounded
+                              : Icons.volume_up_rounded,
+                          color: state.isMuted
+                              ? theme.colorScheme.error
+                              : Colors.white,
                           size: width * 0.4,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${(state.value * 100).toInt()}',
+                          state.isMuted ? 'MUTE' : '${state.value.toInt()}',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: state.isMuted
+                                ? theme.colorScheme.error
+                                : Colors.white,
                             fontSize: width * 0.3,
                             fontWeight: FontWeight.bold,
                           ),

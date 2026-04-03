@@ -114,6 +114,19 @@ Kullanıcı mikrofona konuştuğunda ve cümle/nefes tamamlandığında (algıla
 }
 ```
 
+#### Ses Kontrolü (Volume / Mute)
+Mobil uygulamadan ses seviyesi değiştirildiğinde veya sessize alındığında WebSocket üzerinden iletilir.
+- `VOL` mesajı için `t`: "VOL", `v`: Ses seviyesi (0.0 ile 1.0 arası).
+- `MUTE` mesajı için `t`: "MUTE", `v`: Sessiz durumu (`true` veya `false`).
+
+**Örnek WebSocket Mesajları:**
+```json
+{ "t": "VOL", "v": 0.75 }
+```
+```json
+{ "t": "MUTE", "v": true }
+```
+
 ### B. AKICI OLAYLAR (UDP ÜZERİNDEN GÖNDERİLİR)
 Hızlı hareketler (gecikmeyi önlemek için) ve paket kaybının tolere edilebileceği durumlar **UDP** üzerinden Host'un `data_port` (Örn: 44444) adresine gönderilir.
 
