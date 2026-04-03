@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:motion_bridge/l10n/app_localizations.dart';
 import '../logic/settings_provider.dart';
+import 'about_view.dart';
 
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});
@@ -233,19 +234,9 @@ class SettingsView extends ConsumerWidget {
                 ),
                 trailing: const Icon(Icons.info_outline),
                 onTap: () {
-                  showAboutDialog(
-                    context: context,
-                    applicationName: 'MotionBridge',
-                    applicationVersion: version,
-                    applicationIcon: const FlutterLogo(size: 40),
-                    children: [
-                      const SizedBox(height: 16),
-                      Text(
-                        'MotionBridge turns your device into a wireless trackpad and controller for your computer. '
-                        'It connects over your local network to provide low-latency mouse and scrolling interactions.',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ],
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AboutView()),
                   );
                 },
               ),

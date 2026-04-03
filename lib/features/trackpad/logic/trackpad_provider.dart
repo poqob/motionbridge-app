@@ -64,7 +64,8 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   }
 
   void _flushAccumulated() {
-    if (_waitingForDrag && (_accumulatedDx.abs() > 1 || _accumulatedDy.abs() > 1)) {
+    if (_waitingForDrag &&
+        (_accumulatedDx.abs() > 1 || _accumulatedDy.abs() > 1)) {
       _dragWaitTimer?.cancel();
       _waitingForDrag = false;
       _isDragMode = true;
@@ -108,12 +109,17 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
       final timeSinceLastUp = DateTime.now()
           .difference(_lastPointerUpTime)
           .inMilliseconds;
-      // 300ms window for double tap or drag
-      if (timeSinceLastUp < 300 && _lastActionWasTap) {
+      final timeSinceScroll = DateTime.now()
+          .difference(_lastScrollTime)
+          .inMilliseconds;
+      // 300ms window for double tap or drag, ignoring right after a scroll
+      if (timeSinceLastUp < 300 &&
+          _lastActionWasTap &&
+          timeSinceScroll >= 300) {
         _waitingForDrag = true;
         _isDragMode = false;
         _dragStartSent = false;
-        
+
         _dragWaitTimer?.cancel();
         // Wait 150ms to see if user holds the finger (Drag) or releases quickly (Double Tap)
         _dragWaitTimer = Timer(const Duration(milliseconds: 150), () {
@@ -137,7 +143,7 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
     if (_activePointers > _maxPointersInSequence) {
       _maxPointersInSequence = _activePointers;
     }
-    
+
     if (_activePointers == 3) {
       _threeFingerStartPoints.clear();
       _threeFingerStartPoints.addAll(_currentPositions);
@@ -154,7 +160,7 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
       _lastPointerUpTime = DateTime.now();
 
       _dragWaitTimer?.cancel();
-      
+
       if (_waitingForDrag) {
         // Quick release on the second tap -> Double Tap!
         _waitingForDrag = false;
@@ -164,7 +170,14 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
         final duration = DateTime.now()
             .difference(_lastScaleStartTime)
             .inMilliseconds;
-        if (duration < 250 && !_movedSignificantly && !_dragStartSent) {
+        final timeSinceScroll = DateTime.now()
+            .difference(_lastScrollTime)
+            .inMilliseconds;
+
+        if (duration < 250 &&
+            !_movedSignificantly &&
+            !_dragStartSent &&
+            timeSinceScroll >= 300) {
           if (_maxPointersInSequence == 1) {
             onLeftTap();
             _lastActionWasTap = true;
@@ -200,8 +213,10 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
         int validCount = 0;
         for (final id in _threeFingerStartPoints.keys) {
           if (_currentPositions.containsKey(id)) {
-            sumDx += _currentPositions[id]!.dx - _threeFingerStartPoints[id]!.dx;
-            sumDy += _currentPositions[id]!.dy - _threeFingerStartPoints[id]!.dy;
+            sumDx +=
+                _currentPositions[id]!.dx - _threeFingerStartPoints[id]!.dx;
+            sumDy +=
+                _currentPositions[id]!.dy - _threeFingerStartPoints[id]!.dy;
             validCount++;
           }
         }
