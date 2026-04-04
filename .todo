@@ -1,0 +1,10 @@
+[UPDATES]
+- Landscape menu view into Card! 
+
+[FIXES]
+- drag_start eventi ile doubleclick karıştırılıyor. Pencere sürükleme eyleminde pencere 
+ilkin double click kabul ediyor. Pencere büyükken double click + drag_start sürüklemeyi bozmuyor.
+
+[NEW FEATURES]
+- auto dimmer background service! 
+- 
