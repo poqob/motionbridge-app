@@ -111,7 +111,8 @@ class NetworkManager {
           type == 'SWIPE_3' ||
           type == 'DICT' ||
           type == 'VOL' ||
-          type == 'MUTE') {
+          type == 'MUTE' ||
+          type == 'MEDIA') {
         if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
           _webSocket!.add(jsonString);
           if (kDebugMode) print("Sent via WebSocket: $jsonString");

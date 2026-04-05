@@ -27,6 +27,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get volume => 'Ses';
 
   @override
+  String get media => 'Medya';
+
+  @override
   String get gentlyMove => 'Yavaşça dokunun veya kaydırın';
 
   @override

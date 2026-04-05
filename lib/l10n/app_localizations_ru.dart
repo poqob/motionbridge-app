@@ -27,6 +27,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get volume => 'Звук';
 
   @override
+  String get media => 'Медиа';
+
+  @override
   String get gentlyMove => 'Аккуратно двигайте или используйте жесты';
 
   @override

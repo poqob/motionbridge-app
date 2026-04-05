@@ -136,6 +136,12 @@ abstract class AppLocalizations {
   /// **'Volume'**
   String get volume;
 
+  /// No description provided for @media.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get media;
+
   /// No description provided for @gentlyMove.
   ///
   /// In en, this message translates to:

@@ -127,6 +127,19 @@ Mobil uygulamadan ses seviyesi değiştirildiğinde veya sessize alındığında
 { "t": "MUTE", "v": true }
 ```
 
+#### Medya Kontrolü (Media Control)
+Kullanıcı medya oynatıcı kontrollerini kullandığında WebSocket üzerinden iletilir. Oynat, duraklat, sonraki şarkı veya önceki şarkı eylemlerini tetikler.
+- `t`: "MEDIA"
+- `action`: İstenilen işlem. Alabileceği değerler: `"PLAY"`, `"PAUSE"`, `"NEXT"`, `"PREV"`
+
+**Örnek WebSocket Mesajları:**
+```json
+{ "t": "MEDIA", "action": "PLAY" }
+```
+```json
+{ "t": "MEDIA", "action": "NEXT" }
+```
+
 ### B. AKICI OLAYLAR (UDP ÜZERİNDEN GÖNDERİLİR)
 Hızlı hareketler (gecikmeyi önlemek için) ve paket kaybının tolere edilebileceği durumlar **UDP** üzerinden Host'un `data_port` (Örn: 44444) adresine gönderilir.
 

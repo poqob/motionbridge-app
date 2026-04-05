@@ -11,8 +11,10 @@ import 'features/settings/ui/settings_view.dart';
 import 'features/dimmer/ui/dimmer_slider.dart';
 import 'features/volume/ui/volume_view.dart';
 import 'features/volume/ui/volume_slider.dart';
+import 'features/media/ui/media_view.dart';
+import 'features/media/ui/media_card.dart';
 
-enum InputMode { trackpad, dimmer, volume }
+enum InputMode { trackpad, dimmer, volume, media }
 
 final inputModeProvider = NotifierProvider<InputModeNotifier, InputMode>(() {
   return InputModeNotifier();
@@ -152,6 +154,15 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
                   Navigator.pop(context);
                 },
               ),
+              _MenuTile(
+                title: loc.media,
+                icon: Icons.play_circle_outline_rounded,
+                isSelected: currentMode == InputMode.media,
+                onTap: () {
+                  ref.read(inputModeProvider.notifier).setMode(InputMode.media);
+                  Navigator.pop(context);
+                },
+              ),
               const Divider(height: 32),
               _MenuTile(
                 title: loc.settings,
@@ -197,6 +208,7 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
       InputMode.trackpad => const TrackpadView(key: ValueKey('trackpad')),
       InputMode.dimmer => const DimmerView(key: ValueKey('dimmer')),
       InputMode.volume => const VolumeView(key: ValueKey('volume')),
+      InputMode.media => const MediaView(key: ValueKey('media')),
     };
 
     return Scaffold(
@@ -222,6 +234,8 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const MediaCard(),
+                  const SizedBox(width: 24),
                   DimmerSlider(
                     width: 100,
                     height: MediaQuery.of(context).size.height * 0.7,

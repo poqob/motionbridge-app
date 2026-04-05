@@ -27,6 +27,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get volume => 'Volume';
 
   @override
+  String get media => 'Media';
+
+  @override
   String get gentlyMove => 'Gently move or gesture';
 
   @override
