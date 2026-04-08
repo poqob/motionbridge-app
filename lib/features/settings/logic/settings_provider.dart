@@ -10,6 +10,7 @@ class SettingsState {
   final String deviceName;
   final String deviceId; // '' for system
   final bool reverseScroll;
+  final String speechEnginePackage;
 
   SettingsState({
     required this.maxFps,
@@ -18,6 +19,7 @@ class SettingsState {
     required this.deviceName,
     required this.deviceId,
     required this.reverseScroll,
+    required this.speechEnginePackage,
   });
 
   SettingsState copyWith({
@@ -27,6 +29,7 @@ class SettingsState {
     String? deviceName,
     String? deviceId,
     bool? reverseScroll,
+    String? speechEnginePackage,
   }) {
     return SettingsState(
       maxFps: maxFps ?? this.maxFps,
@@ -35,6 +38,7 @@ class SettingsState {
       deviceName: deviceName ?? this.deviceName,
       deviceId: deviceId ?? this.deviceId,
       reverseScroll: reverseScroll ?? this.reverseScroll,
+      speechEnginePackage: speechEnginePackage ?? this.speechEnginePackage,
     );
   }
 }
@@ -52,6 +56,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
       deviceName: 'MotionBridge',
       deviceId: '',
       reverseScroll: false,
+      speechEnginePackage: "",
     );
   }
 
@@ -65,6 +70,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
         storedDeviceId ??
         DateTime.now().millisecondsSinceEpoch.toRadixString(16);
     final revScroll = _prefs?.getBool('reverseScroll') ?? false;
+    final speechPkg = _prefs?.getString('speechEnginePackage') ?? '';
     if (storedDeviceId == null) {
       _prefs?.setString('deviceId', deviceId);
     }
@@ -105,6 +111,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
       deviceName: deviceName,
       deviceId: deviceId,
       reverseScroll: revScroll,
+      speechEnginePackage: speechPkg,
     );
   }
 
@@ -131,6 +138,11 @@ class SettingsNotifier extends Notifier<SettingsState> {
   void setReverseScroll(bool value) {
     state = state.copyWith(reverseScroll: value);
     _prefs?.setBool('reverseScroll', value);
+  }
+
+  void setSpeechEnginePackage(String pkg) {
+    state = state.copyWith(speechEnginePackage: pkg);
+    _prefs?.setString('speechEnginePackage', pkg);
   }
 }
 

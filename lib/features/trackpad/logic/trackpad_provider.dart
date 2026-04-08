@@ -34,6 +34,7 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   bool _lastActionWasTap = false;
   bool _waitingForDrag = false;
   Timer? _dragWaitTimer;
+  Timer? _leftTapWaitTimer;
   DateTime _lastScrollTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   // Throttling state
@@ -101,6 +102,7 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
 
   void onPointerDown(PointerDownEvent event) {
     _currentPositions[event.pointer] = event.position;
+    _leftTapWaitTimer?.cancel();
 
     if (_activePointers == 0) {
       _maxPointersInSequence = 0;
@@ -179,8 +181,12 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
             !_dragStartSent &&
             timeSinceScroll >= 300) {
           if (_maxPointersInSequence == 1) {
-            onLeftTap();
             _lastActionWasTap = true;
+            _leftTapWaitTimer?.cancel();
+            _leftTapWaitTimer = Timer(const Duration(milliseconds: 300), () {
+              onLeftTap();
+              _lastActionWasTap = false;
+            });
           } else if (_maxPointersInSequence == 2) {
             onRightTap();
             _lastActionWasTap = false;

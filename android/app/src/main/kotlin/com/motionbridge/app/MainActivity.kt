@@ -4,9 +4,25 @@ import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private var multicastLock: WifiManager.MulticastLock? = null
+    private var dictationManager: DictationManager? = null
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        
+        dictationManager = DictationManager(context)
+        
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.motionbridge.app/dictation")
+            .setMethodCallHandler(dictationManager)
+            
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, "com.motionbridge.app/dictation_events")
+            .setStreamHandler(dictationManager)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

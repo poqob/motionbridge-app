@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:motion_bridge/l10n/app_localizations.dart';
 import '../logic/settings_provider.dart';
+import 'speech_engine_selector.dart';
 import 'about_view.dart';
 
 class SettingsView extends ConsumerWidget {
@@ -206,6 +207,9 @@ class SettingsView extends ConsumerWidget {
                   );
                 },
               ),
+
+              const SizedBox(height: 16),
+              const SpeechEngineSelector(),
 
               const SizedBox(height: 16),
               SwitchListTile(
