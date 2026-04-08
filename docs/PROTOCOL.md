@@ -86,6 +86,15 @@ Bir nesneyi tutma ve bırakma anları kritik olduğundan WebSocket üzerinden il
 { "t": "DRAG_END" }
 ```
 
+#### 4 Parmak Dokunma (4-Finger Tap)
+Trackpad üzerinde 4 parmakla aynı anda dokunulduğunda WebSocket üzerinden tek seferlik olarak iletilir. Genellikle yapıştırma (Paste / Ctrl+V) gibi işlemler için masaüstü yazılımında değerlendirilir.
+- `t`: "TAP_4"
+
+**Örnek WebSocket Mesajı:**
+```json
+{ "t": "TAP_4" }
+```
+
 #### 3 Parmak Kaydırma (3-Finger Swipe)
 Trackpad üzerinde 3 parmakla eşik değeri aşacak kadar kaydırma yapıldığında WebSocket üzerinden tek seferlik olarak iletilir. Genellikle masaüstü değiştirmek veya görev görünümünü açmak için kullanılır (Mac'te Mission Control vb.).
 - `t`: "SWIPE_3"

@@ -11,6 +11,7 @@ class SettingsState {
   final String deviceId; // '' for system
   final bool reverseScroll;
   final String speechEnginePackage;
+  final String trackpadBackground;
 
   SettingsState({
     required this.maxFps,
@@ -20,6 +21,7 @@ class SettingsState {
     required this.deviceId,
     required this.reverseScroll,
     required this.speechEnginePackage,
+    required this.trackpadBackground,
   });
 
   SettingsState copyWith({
@@ -30,6 +32,7 @@ class SettingsState {
     String? deviceId,
     bool? reverseScroll,
     String? speechEnginePackage,
+    String? trackpadBackground,
   }) {
     return SettingsState(
       maxFps: maxFps ?? this.maxFps,
@@ -39,6 +42,7 @@ class SettingsState {
       deviceId: deviceId ?? this.deviceId,
       reverseScroll: reverseScroll ?? this.reverseScroll,
       speechEnginePackage: speechEnginePackage ?? this.speechEnginePackage,
+      trackpadBackground: trackpadBackground ?? this.trackpadBackground,
     );
   }
 }
@@ -57,6 +61,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
       deviceId: '',
       reverseScroll: false,
       speechEnginePackage: "",
+      trackpadBackground: "isometric",
     );
   }
 
@@ -71,6 +76,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
         DateTime.now().millisecondsSinceEpoch.toRadixString(16);
     final revScroll = _prefs?.getBool('reverseScroll') ?? false;
     final speechPkg = _prefs?.getString('speechEnginePackage') ?? '';
+    final trackBack = _prefs?.getString('trackpadBackground') ?? 'isometric';
     if (storedDeviceId == null) {
       _prefs?.setString('deviceId', deviceId);
     }
@@ -112,6 +118,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
       deviceId: deviceId,
       reverseScroll: revScroll,
       speechEnginePackage: speechPkg,
+      trackpadBackground: trackBack,
     );
   }
 
@@ -143,6 +150,11 @@ class SettingsNotifier extends Notifier<SettingsState> {
   void setSpeechEnginePackage(String pkg) {
     state = state.copyWith(speechEnginePackage: pkg);
     _prefs?.setString('speechEnginePackage', pkg);
+  }
+
+  void setTrackpadBackground(String style) {
+    state = state.copyWith(trackpadBackground: style);
+    _prefs?.setString('trackpadBackground', style);
   }
 }
 

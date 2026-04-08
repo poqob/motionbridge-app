@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:motion_bridge/l10n/app_localizations.dart';
 import '../logic/settings_provider.dart';
 import 'speech_engine_selector.dart';
+import 'trackpad_background_selector.dart';
 import 'about_view.dart';
 
 class SettingsView extends ConsumerWidget {
@@ -226,6 +227,9 @@ class SettingsView extends ConsumerWidget {
                   notifier.setReverseScroll(val);
                 },
               ),
+
+              const SizedBox(height: 16),
+              const TrackpadBackgroundSelector(),
 
               const SizedBox(height: 48),
               const Divider(),

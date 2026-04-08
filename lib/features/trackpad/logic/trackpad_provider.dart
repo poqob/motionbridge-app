@@ -176,7 +176,9 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
             .difference(_lastScrollTime)
             .inMilliseconds;
 
-        if (duration < 250 &&
+        final int allowedDuration = _maxPointersInSequence > 2 ? 400 : 250;
+
+        if (duration < allowedDuration &&
             !_movedSignificantly &&
             !_dragStartSent &&
             timeSinceScroll >= 300) {
@@ -189,6 +191,9 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
             });
           } else if (_maxPointersInSequence == 2) {
             onRightTap();
+            _lastActionWasTap = false;
+          } else if (_maxPointersInSequence == 4) {
+            onFourFingerTap();
             _lastActionWasTap = false;
           } else {
             _lastActionWasTap = false;
@@ -271,7 +276,12 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
     }
 
     _accumulatedDx += details.focalPointDelta.dx;
-    if (details.focalPointDelta.distance > 1.5) {
+    final double allowedDistance = pointers == 4
+        ? 800.0
+        : pointers == 3
+        ? 5.0
+        : 1.5;
+    if (details.focalPointDelta.distance > allowedDistance) {
       _movedSignificantly = true;
     }
     _accumulatedDy += details.focalPointDelta.dy;
@@ -342,6 +352,11 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   void onDoubleTap() {
     AppHaptics.mediumImpact();
     _send("DOUBLE_CLICK", {}); // or "DOUBLE_TAP" depending on backend
+  }
+
+  void onFourFingerTap() {
+    AppHaptics.mediumImpact();
+    _send("TAP_4", {}); // Trigger Paste
   }
 }
 
