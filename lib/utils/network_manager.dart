@@ -110,6 +110,7 @@ class NetworkManager {
           type == 'DRAG_END' ||
           type == 'SWIPE_3' ||
           type == 'DICT' ||
+          type == 'CLIP' ||
           type == 'VOL' ||
           type == 'MUTE' ||
           type == 'MEDIA' ||

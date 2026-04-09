@@ -106,80 +106,98 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
+        final isLandscape =
+            MediaQuery.orientationOf(context) == Orientation.landscape;
+
+        final menuContent = Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              loc.controllers,
+              style: theme.textTheme.displayMedium?.copyWith(fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            _MenuTile(
+              title: loc.trackpad,
+              icon: Icons.touch_app_rounded,
+              isSelected: currentMode == InputMode.trackpad,
+              onTap: () {
+                ref
+                    .read(inputModeProvider.notifier)
+                    .setMode(InputMode.trackpad);
+                Navigator.pop(context);
+              },
+            ),
+            _MenuTile(
+              title: loc.dimmer,
+              icon: Icons.blur_on_rounded,
+              isSelected: currentMode == InputMode.dimmer,
+              onTap: () {
+                ref.read(inputModeProvider.notifier).setMode(InputMode.dimmer);
+                Navigator.pop(context);
+              },
+            ),
+            _MenuTile(
+              title: loc.volume,
+              icon: Icons.volume_up_rounded,
+              isSelected: currentMode == InputMode.volume,
+              onTap: () {
+                ref.read(inputModeProvider.notifier).setMode(InputMode.volume);
+                Navigator.pop(context);
+              },
+            ),
+            _MenuTile(
+              title: loc.media,
+              icon: Icons.play_circle_outline_rounded,
+              isSelected: currentMode == InputMode.media,
+              onTap: () {
+                ref.read(inputModeProvider.notifier).setMode(InputMode.media);
+                Navigator.pop(context);
+              },
+            ),
+            const Divider(height: 32),
+            _MenuTile(
+              title: loc.settings,
+              icon: Icons.settings_rounded,
+              isSelected: false,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsView()),
+                );
+              },
+            ),
+            const SizedBox(height: 48),
+          ],
+        );
+
         return Container(
+          height: isLandscape ? MediaQuery.sizeOf(ctx).height * 0.9 : null,
           decoration: BoxDecoration(
             color: theme.colorScheme.surface.withValues(alpha: 0.95),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                loc.controllers,
-                style: theme.textTheme.displayMedium?.copyWith(fontSize: 14),
-              ),
-              const SizedBox(height: 24),
-              _MenuTile(
-                title: loc.trackpad,
-                icon: Icons.touch_app_rounded,
-                isSelected: currentMode == InputMode.trackpad,
-                onTap: () {
-                  ref
-                      .read(inputModeProvider.notifier)
-                      .setMode(InputMode.trackpad);
-                  Navigator.pop(context);
-                },
-              ),
-              _MenuTile(
-                title: loc.dimmer,
-                icon: Icons.blur_on_rounded,
-                isSelected: currentMode == InputMode.dimmer,
-                onTap: () {
-                  ref
-                      .read(inputModeProvider.notifier)
-                      .setMode(InputMode.dimmer);
-                  Navigator.pop(context);
-                },
-              ),
-              _MenuTile(
-                title: loc.volume,
-                icon: Icons.volume_up_rounded,
-                isSelected: currentMode == InputMode.volume,
-                onTap: () {
-                  ref
-                      .read(inputModeProvider.notifier)
-                      .setMode(InputMode.volume);
-                  Navigator.pop(context);
-                },
-              ),
-              _MenuTile(
-                title: loc.media,
-                icon: Icons.play_circle_outline_rounded,
-                isSelected: currentMode == InputMode.media,
-                onTap: () {
-                  ref.read(inputModeProvider.notifier).setMode(InputMode.media);
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(height: 32),
-              _MenuTile(
-                title: loc.settings,
-                icon: Icons.settings_rounded,
-                isSelected: false,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SettingsView()),
-                  );
-                },
-              ),
-              const SizedBox(height: 48),
-            ],
-          ),
+          child: isLandscape
+              ? SafeArea(
+                  maintainBottomViewPadding: true,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Expanded(flex: 3, child: _ClipboardViewer()),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        flex: 2,
+                        child: SingleChildScrollView(child: menuContent),
+                      ),
+                    ],
+                  ),
+                )
+              : menuContent,
         );
       },
     );
@@ -241,6 +259,11 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      SizedBox(
+                        width: 250, // Clipboard Container Width
+                        child: const _ClipboardViewer(),
+                      ),
+                      const SizedBox(width: 24),
                       const WidgetsSection(),
                       const SizedBox(width: 24),
                       const MediaCard(),
@@ -612,6 +635,164 @@ class _DeviceDiscoveryContentState extends State<_DeviceDiscoveryContent> {
           ],
         );
       },
+    );
+  }
+}
+
+class _ClipboardViewer extends StatefulWidget {
+  const _ClipboardViewer();
+
+  @override
+  State<_ClipboardViewer> createState() => _ClipboardViewerState();
+}
+
+class _ClipboardViewerState extends State<_ClipboardViewer>
+    with WidgetsBindingObserver {
+  final List<String> _history = [];
+  bool _isChecking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkClipboard();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkClipboard();
+    }
+  }
+
+  Future<void> _checkClipboard() async {
+    if (_isChecking) return;
+    _isChecking = true;
+    try {
+      final clipData = await Clipboard.getData(Clipboard.kTextPlain);
+      final text = clipData?.text?.trim();
+      if (text != null && text.isNotEmpty) {
+        setState(() {
+          if (_history.isEmpty || _history.first != text) {
+            _history.removeWhere((item) => item == text);
+            _history.insert(0, text);
+          }
+        });
+      }
+    } catch (_) {
+      // Ignored
+    } finally {
+      _isChecking = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final loc = AppLocalizations.of(context)!;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: theme.colorScheme.secondary.withValues(alpha: 0.3),
+        ),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.content_paste_rounded,
+                color: theme.colorScheme.secondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  loc.clipboardHistory,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.secondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.refresh_rounded,
+                  size: 20,
+                  color: theme.colorScheme.secondary,
+                ),
+                onPressed: _checkClipboard,
+                tooltip: "Yenile",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _history.isEmpty
+                ? Center(
+                    child: Text(
+                      loc.clipboardEmpty,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey,
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: _history.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final itemText = _history[index];
+                      return Material(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () {
+                            NetworkManager().sendPacket({
+                              't': 'CLIP',
+                              'text': itemText,
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(loc.copiedToDesktop),
+                                duration: const Duration(seconds: 1),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Text(
+                              itemText,
+                              style: theme.textTheme.bodyMedium,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

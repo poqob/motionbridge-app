@@ -123,6 +123,19 @@ Kullanıcı mikrofona konuştuğunda ve cümle/nefes tamamlandığında (algıla
 }
 ```
 
+#### Pano Geçmişi (Clipboard)
+Kullanıcı mobil cihazda panoya (clipboard) kopyaladığı içerikleri listesinden seçip masaüstüne göndermek istediğinde iletilir. Bu mesajlar da kaybolmaması adına WebSocket üzerinden gönderilir.
+- `t`: "CLIP"
+- `text`: Panoda kopyalanmış ve kullanıcı tarafından seçilmiş metin.
+
+**Örnek WebSocket Mesajı:**
+```json
+{
+  "t": "CLIP",
+  "text": "Kopyalanan önemli metin içeriği"
+}
+```
+
 #### Ses Kontrolü (Volume / Mute)
 Mobil uygulamadan ses seviyesi değiştirildiğinde veya sessize alındığında WebSocket üzerinden iletilir.
 - `VOL` mesajı için `t`: "VOL", `v`: Ses seviyesi (0.0 ile 1.0 arası).

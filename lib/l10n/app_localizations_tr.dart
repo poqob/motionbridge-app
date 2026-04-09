@@ -63,6 +63,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get language => 'Dil';
 
   @override
+  String get clipboardHistory => 'Pano Geçmişi';
+
+  @override
+  String get clipboardEmpty => 'Pano boş';
+
+  @override
+  String get copiedToDesktop => 'Masaüstüne gönderildi';
+
+  @override
   String get languageSystem => 'Sistem';
 
   @override

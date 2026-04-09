@@ -3,3 +3,5 @@
 [NEW FEATURES]
 
 - auto dimmer background service!
+- drag_start - drag_end etkinliğinden sonra trackpad viewin sağ üstünde rounded kare boyunda bir kopyala butonu çıkabilir??? bu buton ctrl+c sinyalini tetikler?
+eğer kopyala butonuna basılmışsa muhtemelen ondan sonra gerçekleşecek eylemler içinde yapıştırma da vardır ve aynı kutu bu sefer Yapıştırma olarak ortaya çıkabilir. Ekran düzeninde bu butonun mikrafonun aksi köşeden çıkması mantıklı olur. Eğer bir yanlış alarm var ise kullanıcı bu kutuyu tutup cihaz çerçevesine doğru sürüklerse kutu kaybolur ve bir sonraki drag_star  drag_end eventne kadar ortaya çıkmaz. Böylece 4 parmak işkencesinden kurtulmuş oluruz.

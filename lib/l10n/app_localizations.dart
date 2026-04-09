@@ -208,6 +208,24 @@ abstract class AppLocalizations {
   /// **'Language'**
   String get language;
 
+  /// No description provided for @clipboardHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard History'**
+  String get clipboardHistory;
+
+  /// No description provided for @clipboardEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard is empty'**
+  String get clipboardEmpty;
+
+  /// No description provided for @copiedToDesktop.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to desktop'**
+  String get copiedToDesktop;
+
   /// No description provided for @languageSystem.
   ///
   /// In en, this message translates to:

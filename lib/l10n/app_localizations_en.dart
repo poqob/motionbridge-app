@@ -63,6 +63,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get language => 'Language';
 
   @override
+  String get clipboardHistory => 'Clipboard History';
+
+  @override
+  String get clipboardEmpty => 'Clipboard is empty';
+
+  @override
+  String get copiedToDesktop => 'Sent to desktop';
+
+  @override
   String get languageSystem => 'System';
 
   @override

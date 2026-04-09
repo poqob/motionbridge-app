@@ -63,6 +63,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get language => 'Язык';
 
   @override
+  String get clipboardHistory => 'История буфера обмена';
+
+  @override
+  String get clipboardEmpty => 'Буфер обмена пуст';
+
+  @override
+  String get copiedToDesktop => 'Отправлено на рабочий стол';
+
+  @override
   String get languageSystem => 'Система';
 
   @override
