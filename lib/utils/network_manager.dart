@@ -112,7 +112,8 @@ class NetworkManager {
           type == 'DICT' ||
           type == 'VOL' ||
           type == 'MUTE' ||
-          type == 'MEDIA') {
+          type == 'MEDIA' ||
+          type == 'SYS') {
         if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
           _webSocket!.add(jsonString);
           if (kDebugMode) print("Sent via WebSocket: $jsonString");
@@ -136,6 +137,10 @@ class NetworkManager {
   void sendDictation(String text) {
     if (text.trim().isEmpty) return;
     sendPacket({"t": "DICT", "text": text, "is_final": true});
+  }
+
+  void sendLockScreen() {
+    sendPacket({"t": "SYS", "action": "LOCK"});
   }
 
   void _setState(NetworkConnectionState state) {

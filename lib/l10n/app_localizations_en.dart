@@ -81,4 +81,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String version(Object version) {
     return 'Version: $version';
   }
+
+  @override
+  String get lockScreen => 'Lock';
+
+  @override
+  String get widgets => 'Widgets';
 }

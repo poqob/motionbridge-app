@@ -81,4 +81,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String version(Object version) {
     return 'Версия: $version';
   }
+
+  @override
+  String get lockScreen => 'Блокировка';
+
+  @override
+  String get widgets => 'Виджеты';
 }

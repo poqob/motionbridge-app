@@ -22,7 +22,7 @@ class TrackpadPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (backgroundStyle == 'none') return;
-    
+
     if (backgroundStyle == 'touch_indicators') {
       _paintTouchIndicators(canvas, size);
     } else if (backgroundStyle == 'spline') {
@@ -42,7 +42,7 @@ class TrackpadPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     const double spacingX = 40.0;
-    const double spacingY = 34.64; 
+    const double spacingY = 34.64;
 
     const double influenceRadius = 120.0;
     const double influenceRadiusSq = influenceRadius * influenceRadius;
@@ -89,7 +89,7 @@ class TrackpadPainter extends CustomPainter {
         ..color = color.withValues(alpha: 0.15)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);
       canvas.drawCircle(cursorPosition, 40.0, paint);
-      
+
       final paintInner = Paint()
         ..color = color.withValues(alpha: 0.4)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0);
@@ -113,7 +113,7 @@ class TrackpadPainter extends CustomPainter {
         }
         continue;
       }
-      
+
       final p = Path();
       p.moveTo(path[0].dx, path[0].dy);
       for (int i = 1; i < path.length - 1; i++) {
@@ -124,10 +124,14 @@ class TrackpadPainter extends CustomPainter {
       p.lineTo(path.last.dx, path.last.dy);
       canvas.drawPath(p, paint);
     }
-    
+
     // Draw current positions as leading big dots
     for (final pos in cursorPositions.values) {
-        canvas.drawCircle(pos, 8.0, Paint()..color = color.withValues(alpha: 0.8));
+      canvas.drawCircle(
+        pos,
+        8.0,
+        Paint()..color = color.withValues(alpha: 0.8),
+      );
     }
   }
 

@@ -81,4 +81,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String version(Object version) {
     return 'Sürüm: $version';
   }
+
+  @override
+  String get lockScreen => 'Kilitle';
+
+  @override
+  String get widgets => 'Araçlar';
 }

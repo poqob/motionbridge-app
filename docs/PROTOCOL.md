@@ -149,6 +149,16 @@ Kullanıcı medya oynatıcı kontrollerini kullandığında WebSocket üzerinden
 { "t": "MEDIA", "action": "NEXT" }
 ```
 
+#### Sistem Komutları (System Commands)
+İşletim sistemini ilgilendiren özellikler (örneğin bilgisayarı kilitleme) WebSocket üzerinden iletilir. Masaüstü yazılımı, bu gelen komuta göre ilgili klavye kısayolunu (Windows için `Win+L`, macOS için `Opt+Cmd+Q` vs.) veya işletim sistemi API çağrısını tetiklemelidir.
+- `t`: "SYS"
+- `action`: Yapılacak eylem (Şu an desteklenenler: `"LOCK"`)
+
+**Örnek WebSocket Mesajı (Kilitleme):**
+```json
+{ "t": "SYS", "action": "LOCK" }
+```
+
 ### B. AKICI OLAYLAR (UDP ÜZERİNDEN GÖNDERİLİR)
 Hızlı hareketler (gecikmeyi önlemek için) ve paket kaybının tolere edilebileceği durumlar **UDP** üzerinden Host'un `data_port` (Örn: 44444) adresine gönderilir.
 

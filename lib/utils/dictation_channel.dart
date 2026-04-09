@@ -3,24 +3,37 @@ import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 
 class DictationChannel {
-  static const MethodChannel _channel = MethodChannel('com.motionbridge.app/dictation');
-  static const EventChannel _eventChannel = EventChannel('com.motionbridge.app/dictation_events');
+  static const MethodChannel _channel = MethodChannel(
+    'com.motionbridge.app/dictation',
+  );
+  static const EventChannel _eventChannel = EventChannel(
+    'com.motionbridge.app/dictation_events',
+  );
 
   static Future<List<Map<String, String>>> getEngines() async {
     if (!Platform.isAndroid) return [];
     try {
-      final List<dynamic>? result = await _channel.invokeListMethod<dynamic>('getEngines');
+      final List<dynamic>? result = await _channel.invokeListMethod<dynamic>(
+        'getEngines',
+      );
       if (result == null) return [];
-      return result.map((e) => {
-        'packageName': e['packageName'] as String,
-        'name': e['name'] as String,
-      }).toList();
+      return result
+          .map(
+            (e) => {
+              'packageName': e['packageName'] as String,
+              'name': e['name'] as String,
+            },
+          )
+          .toList();
     } catch (_) {
       return [];
     }
   }
 
-  static Future<bool> startDictation(String enginePackage, String locale) async {
+  static Future<bool> startDictation(
+    String enginePackage,
+    String locale,
+  ) async {
     if (!Platform.isAndroid) return false;
     try {
       final bool result = await _channel.invokeMethod('startDictation', {

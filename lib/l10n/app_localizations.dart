@@ -243,6 +243,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Version: {version}'**
   String version(Object version);
+
+  /// No description provided for @lockScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock'**
+  String get lockScreen;
+
+  /// No description provided for @widgets.
+  ///
+  /// In en, this message translates to:
+  /// **'Widgets'**
+  String get widgets;
 }
 
 class _AppLocalizationsDelegate

@@ -42,9 +42,11 @@ class DictationNotifier extends Notifier<DictationState> {
   @override
   DictationState build() {
     _initSpeech();
-    
+
     if (Platform.isAndroid) {
-      _androidDictationSubscription = DictationChannel.listenEvents().listen((event) {
+      _androidDictationSubscription = DictationChannel.listenEvents().listen((
+        event,
+      ) {
         if (event['status'] == 'partial' || event['status'] == 'final') {
           final text = event['text'] as String;
           state = state.copyWith(lastWords: text);
@@ -57,28 +59,28 @@ class DictationNotifier extends Notifier<DictationState> {
         }
       });
     }
-    
+
     ref.onDispose(() {
       _androidDictationSubscription?.cancel();
     });
-    
+
     return DictationState();
   }
 
   Future<void> _initSpeech() async {
     bool hasPermission = false;
-    
+
     if (Platform.isAndroid) {
       final status = await Permission.microphone.request();
       hasPermission = status.isGranted;
     } else {
       hasPermission = await _speechToText.initialize();
     }
-    
+
     if (hasPermission) {
       List<LocaleName> locales = [];
       if (!Platform.isAndroid) {
-         locales = await _speechToText.locales();
+        locales = await _speechToText.locales();
       }
       state = state.copyWith(
         hasPermission: hasPermission,
@@ -101,7 +103,10 @@ class DictationNotifier extends Notifier<DictationState> {
 
     if (Platform.isAndroid) {
       final package = ref.read(settingsProvider).speechEnginePackage;
-      final success = await DictationChannel.startDictation(package, localeId.isNotEmpty ? localeId : "en-US");
+      final success = await DictationChannel.startDictation(
+        package,
+        localeId.isNotEmpty ? localeId : "en-US",
+      );
       if (success) {
         state = state.copyWith(isListening: true, lastWords: '');
       }

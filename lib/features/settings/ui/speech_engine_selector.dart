@@ -10,7 +10,7 @@ class SpeechEngineSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!Platform.isAndroid) return const SizedBox.shrink();
-    
+
     final state = ref.watch(settingsProvider);
     final theme = Theme.of(context);
 
@@ -24,7 +24,9 @@ class SpeechEngineSelector extends ConsumerWidget {
         ),
       ),
       subtitle: Text(
-        state.speechEnginePackage.isEmpty ? "System Default" : state.speechEnginePackage,
+        state.speechEnginePackage.isEmpty
+            ? "System Default"
+            : state.speechEnginePackage,
         style: theme.textTheme.bodyMedium,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -33,7 +35,7 @@ class SpeechEngineSelector extends ConsumerWidget {
       onTap: () async {
         final engines = await DictationChannel.getEngines();
         if (!context.mounted) return;
-        
+
         showModalBottomSheet(
           context: context,
           backgroundColor: theme.colorScheme.surface,
@@ -45,18 +47,26 @@ class SpeechEngineSelector extends ConsumerWidget {
                   ListTile(
                     title: const Text("System Default"),
                     onTap: () {
-                      ref.read(settingsProvider.notifier).setSpeechEnginePackage('');
+                      ref
+                          .read(settingsProvider.notifier)
+                          .setSpeechEnginePackage('');
                       Navigator.pop(ctx);
                     },
                   ),
-                  ...engines.map((e) => ListTile(
-                    title: Text(e['name'] ?? ""),
-                    subtitle: Text(e['packageName'] ?? ""),
-                    onTap: () {
-                      ref.read(settingsProvider.notifier).setSpeechEnginePackage(e['packageName']!);
-                      Navigator.pop(ctx);
-                    },
-                  )).toList(),
+                  ...engines
+                      .map(
+                        (e) => ListTile(
+                          title: Text(e['name'] ?? ""),
+                          subtitle: Text(e['packageName'] ?? ""),
+                          onTap: () {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .setSpeechEnginePackage(e['packageName']!);
+                            Navigator.pop(ctx);
+                          },
+                        ),
+                      )
+                      .toList(),
                 ],
               ),
             );

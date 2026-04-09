@@ -11,12 +11,17 @@ class TrackpadBackgroundSelector extends ConsumerWidget {
     final theme = Theme.of(context);
 
     String getLabel(String val) {
-      switch(val) {
-        case 'none': return "Arkaplan Yok";
-        case 'isometric': return "İzometrik-Manyetik";
-        case 'touch_indicators': return "Dokunsal-Gösterge";
-        case 'spline': return "Spline";
-        default: return "İzometrik-Manyetik";
+      switch (val) {
+        case 'none':
+          return "Arkaplan Yok";
+        case 'isometric':
+          return "İzometrik-Manyetik";
+        case 'touch_indicators':
+          return "Dokunsal-Gösterge";
+        case 'spline':
+          return "Spline";
+        default:
+          return "İzometrik-Manyetik";
       }
     }
 
@@ -46,28 +51,36 @@ class TrackpadBackgroundSelector extends ConsumerWidget {
                   ListTile(
                     title: const Text("Arkaplan Yok"),
                     onTap: () {
-                      ref.read(settingsProvider.notifier).setTrackpadBackground('none');
+                      ref
+                          .read(settingsProvider.notifier)
+                          .setTrackpadBackground('none');
                       Navigator.pop(ctx);
                     },
                   ),
                   ListTile(
                     title: const Text("İzometrik-Manyetik"),
                     onTap: () {
-                      ref.read(settingsProvider.notifier).setTrackpadBackground('isometric');
+                      ref
+                          .read(settingsProvider.notifier)
+                          .setTrackpadBackground('isometric');
                       Navigator.pop(ctx);
                     },
                   ),
                   ListTile(
                     title: const Text("Dokunsal-Gösterge"),
                     onTap: () {
-                      ref.read(settingsProvider.notifier).setTrackpadBackground('touch_indicators');
+                      ref
+                          .read(settingsProvider.notifier)
+                          .setTrackpadBackground('touch_indicators');
                       Navigator.pop(ctx);
                     },
                   ),
                   ListTile(
                     title: const Text("Spline"),
                     onTap: () {
-                      ref.read(settingsProvider.notifier).setTrackpadBackground('spline');
+                      ref
+                          .read(settingsProvider.notifier)
+                          .setTrackpadBackground('spline');
                       Navigator.pop(ctx);
                     },
                   ),

@@ -23,5 +23,7 @@
   "languageTurkish": "Türkçe",
   "languageRussian": "Русский",
   "reverseScroll": "Kaydırmayı Tersine Çevir",
-  "version": "Sürüm: {version}"
+  "version": "Sürüm: {version}",
+  "lockScreen": "Kilitle",
+  "widgets": "Araçlar"
 }

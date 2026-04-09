@@ -13,6 +13,7 @@ import 'features/volume/ui/volume_view.dart';
 import 'features/volume/ui/volume_slider.dart';
 import 'features/media/ui/media_view.dart';
 import 'features/media/ui/media_card.dart';
+import 'features/widgets/ui/widgets_section.dart';
 
 enum InputMode { trackpad, dimmer, volume, media }
 
@@ -226,26 +227,36 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
           ),
 
           // Floating Dimmer Overlay for Landscape
-          if (isLandscape && mode == InputMode.trackpad && _showLandscapeDimmer)
+          if (isLandscape && mode == InputMode.trackpad)
             Positioned(
               right: 80, // slightly left of the menu button
               top: 40,
               bottom: 40,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const MediaCard(),
-                  const SizedBox(width: 24),
-                  DimmerSlider(
-                    width: 100,
-                    height: MediaQuery.of(context).size.height * 0.7,
+              child: IgnorePointer(
+                ignoring: !_showLandscapeDimmer,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  opacity: _showLandscapeDimmer ? 1.0 : 0.0,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const WidgetsSection(),
+                      const SizedBox(width: 24),
+                      const MediaCard(),
+                      const SizedBox(width: 24),
+                      DimmerSlider(
+                        width: 100,
+                        height: MediaQuery.of(context).size.height * 0.7,
+                      ),
+                      const SizedBox(width: 24),
+                      VolumeSlider(
+                        width: 60,
+                        height: MediaQuery.of(context).size.height * 0.7,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 24),
-                  VolumeSlider(
-                    width: 60,
-                    height: MediaQuery.of(context).size.height * 0.7,
-                  ),
-                ],
+                ),
               ),
             ),
 
