@@ -28,5 +28,7 @@
   "reverseScroll": "Kaydırmayı Tersine Çevir",
   "version": "Sürüm: {version}",
   "lockScreen": "Kilitle",
+  "powerOff": "Kapat",
+  "reboot": "Yeniden Başlat",
   "widgets": "Araçlar"
 }

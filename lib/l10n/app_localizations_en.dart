@@ -95,5 +95,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lockScreen => 'Lock';
 
   @override
+  String get powerOff => 'Power off';
+
+  @override
+  String get reboot => 'Reboot';
+
+  @override
   String get widgets => 'Widgets';
 }

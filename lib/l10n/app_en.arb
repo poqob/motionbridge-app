@@ -28,6 +28,8 @@
   "reverseScroll": "Reverse Scroll",
   "version": "Version: {version}",
   "lockScreen": "Lock",
+  "powerOff": "Power off",
+  "reboot": "Reboot",
   "widgets": "Widgets",
   "@version": {
     "placeholders": {

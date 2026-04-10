@@ -163,13 +163,21 @@ Kullanıcı medya oynatıcı kontrollerini kullandığında WebSocket üzerinden
 ```
 
 #### Sistem Komutları (System Commands)
-İşletim sistemini ilgilendiren özellikler (örneğin bilgisayarı kilitleme) WebSocket üzerinden iletilir. Masaüstü yazılımı, bu gelen komuta göre ilgili klavye kısayolunu (Windows için `Win+L`, macOS için `Opt+Cmd+Q` vs.) veya işletim sistemi API çağrısını tetiklemelidir.
+İşletim sistemini ilgilendiren özellikler (örneğin bilgisayarı kilitleme, yeniden başlatma vb.) WebSocket üzerinden iletilir. Masaüstü yazılımı, bu gelen komuta göre ilgili klavye kısayolunu (Windows için `Win+L`, macOS için `Opt+Cmd+Q` vs.) veya işletim sistemi API çağrısını tetiklemelidir.
 - `t`: "SYS"
-- `action`: Yapılacak eylem (Şu an desteklenenler: `"LOCK"`)
+- `action`: Yapılacak eylem (Şu an desteklenenler: `"LOCK"`, `"POWEROFF"`, `"REBOOT"`)
 
 **Örnek WebSocket Mesajı (Kilitleme):**
 ```json
 { "t": "SYS", "action": "LOCK" }
+```
+**Örnek WebSocket Mesajı (Kapatma):**
+```json
+{ "t": "SYS", "action": "POWEROFF" }
+```
+**Örnek WebSocket Mesajı (Yeniden Başlatma):**
+```json
+{ "t": "SYS", "action": "REBOOT" }
 ```
 
 ### B. AKICI OLAYLAR (UDP ÜZERİNDEN GÖNDERİLİR)

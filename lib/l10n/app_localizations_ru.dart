@@ -95,5 +95,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get lockScreen => 'Блокировка';
 
   @override
+  String get powerOff => 'Выключение';
+
+  @override
+  String get reboot => 'Перезагрузка';
+
+  @override
   String get widgets => 'Виджеты';
 }

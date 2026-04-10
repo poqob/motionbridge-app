@@ -268,6 +268,18 @@ abstract class AppLocalizations {
   /// **'Lock'**
   String get lockScreen;
 
+  /// No description provided for @powerOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Power off'**
+  String get powerOff;
+
+  /// No description provided for @reboot.
+  ///
+  /// In en, this message translates to:
+  /// **'Reboot'**
+  String get reboot;
+
   /// No description provided for @widgets.
   ///
   /// In en, this message translates to:

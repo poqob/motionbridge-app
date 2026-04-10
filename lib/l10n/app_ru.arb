@@ -38,5 +38,7 @@
   "reverseScroll": "Обратная прокрутка",
   "version": "Версия: {version}",
   "lockScreen": "Блокировка",
+  "powerOff": "Выключение",
+  "reboot": "Перезагрузка",
   "widgets": "Виджеты"
 }

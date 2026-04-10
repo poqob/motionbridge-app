@@ -95,5 +95,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lockScreen => 'Kilitle';
 
   @override
+  String get powerOff => 'Kapat';
+
+  @override
+  String get reboot => 'Yeniden Başlat';
+
+  @override
   String get widgets => 'Araçlar';
 }

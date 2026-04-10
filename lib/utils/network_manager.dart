@@ -144,6 +144,14 @@ class NetworkManager {
     sendPacket({"t": "SYS", "action": "LOCK"});
   }
 
+  void sendPowerOff() {
+    sendPacket({"t": "SYS", "action": "POWEROFF"});
+  }
+
+  void sendReboot() {
+    sendPacket({"t": "SYS", "action": "REBOOT"});
+  }
+
   void _setState(NetworkConnectionState state) {
     _currentState = state;
     _connectionStateController.add(state);

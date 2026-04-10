@@ -781,7 +781,9 @@ class _ClipboardViewerState extends State<_ClipboardViewer>
                             padding: const EdgeInsets.all(12),
                             child: Text(
                               itemText,
-                              style: theme.textTheme.bodyMedium,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                               maxLines: 4,
                               overflow: TextOverflow.ellipsis,
                             ),
