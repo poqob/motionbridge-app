@@ -114,7 +114,9 @@ class NetworkManager {
           type == 'VOL' ||
           type == 'MUTE' ||
           type == 'MEDIA' ||
-          type == 'SYS') {
+          type == 'SYS' ||
+          type == 'COPY' ||
+          type == 'PASTE') {
         if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
           _webSocket!.add(jsonString);
           if (kDebugMode) print("Sent via WebSocket: $jsonString");

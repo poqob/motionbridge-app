@@ -203,7 +203,141 @@ class _TrackpadViewState extends ConsumerState<TrackpadView> {
               ),
             ),
           ),
+
+          // Smart Directive Button (Copy/Paste)
+          const SmartDirectiveWidget(),
         ],
+      ),
+    );
+  }
+}
+
+class SmartDirectiveWidget extends ConsumerStatefulWidget {
+  const SmartDirectiveWidget({super.key});
+
+  @override
+  ConsumerState<SmartDirectiveWidget> createState() =>
+      _SmartDirectiveWidgetState();
+}
+
+class _SmartDirectiveWidgetState extends ConsumerState<SmartDirectiveWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _bounceController;
+  late Animation<double> _bounceAnimation;
+  bool _wasShowing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bounceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    // Zıplama efekti için: 0 -> 15 (sağa kayacak) -> 0 (geri dönecek)
+    _bounceAnimation = TweenSequence([
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 0.0,
+          end: 15.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 50,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: 15.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 50,
+      ),
+    ]).animate(_bounceController);
+  }
+
+  @override
+  void dispose() {
+    _bounceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final trackpadState = ref.watch(trackpadProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final isCopy = trackpadState.smartDirective == SmartDirective.copy;
+    final isPaste = trackpadState.smartDirective == SmartDirective.paste;
+    final showButton = isCopy || isPaste;
+
+    if (showButton && !_wasShowing) {
+      // Düğme görünür olduğunda ve animasyon bitince zıplamayı başlat (Giriş animasyonu yaklaşık 300ms)
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (mounted) {
+          _bounceController.forward(from: 0);
+        }
+      });
+    }
+    _wasShowing = showButton;
+
+    // Premium renkler
+    final bgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFFFFFF);
+    final iconColor = isDark
+        ? const Color(0xFFE0E0E0)
+        : const Color(0xFF1E1E1E);
+
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      bottom: 24, // Sağ altta ortaya çıkmalı
+      right: showButton ? 24 : -100, // Çerçeveden dışarı
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: showButton ? 1.0 : 0.0,
+        child: AnimatedBuilder(
+          animation: _bounceAnimation,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(_bounceAnimation.value, 0),
+              child: child,
+            );
+          },
+          child: GestureDetector(
+            onHorizontalDragUpdate: (details) {
+              if (details.primaryDelta! > 5) {
+                // Sağa doğru çekerse kaybolsun
+                ref.read(trackpadProvider.notifier).dismissSmartDirective();
+              }
+            },
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(16),
+              color: bgColor,
+              child: InkWell(
+                onTap: () {
+                  ref.read(trackpadProvider.notifier).onSmartDirectiveTapped();
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  width: 56,
+                  height: 56, // Rounded edge square form
+                  child: Center(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, animation) {
+                        return ScaleTransition(scale: animation, child: child);
+                      },
+                      child: Icon(
+                        isCopy ? Icons.copy : Icons.paste,
+                        key: ValueKey(isCopy),
+                        color: iconColor,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

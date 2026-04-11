@@ -5,16 +5,28 @@ import '../../../utils/network_manager.dart';
 import '../../../constants/app_haptics.dart';
 import '../../settings/logic/settings_provider.dart';
 
+enum SmartDirective { none, copy, paste }
+
 class TrackpadState {
   final Offset pointerPosition;
   final bool isInteracting;
+  final SmartDirective smartDirective;
 
-  TrackpadState({required this.pointerPosition, required this.isInteracting});
+  TrackpadState({
+    required this.pointerPosition,
+    required this.isInteracting,
+    this.smartDirective = SmartDirective.none,
+  });
 
-  TrackpadState copyWith({Offset? pointerPosition, bool? isInteracting}) {
+  TrackpadState copyWith({
+    Offset? pointerPosition,
+    bool? isInteracting,
+    SmartDirective? smartDirective,
+  }) {
     return TrackpadState(
       pointerPosition: pointerPosition ?? this.pointerPosition,
       isInteracting: isInteracting ?? this.isInteracting,
+      smartDirective: smartDirective ?? this.smartDirective,
     );
   }
 }
@@ -47,9 +59,15 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
   final Map<int, Offset> _threeFingerStartPoints = {};
   bool _threeFingerGestureTriggered = false;
 
+  Timer? _smartDirectiveTimer;
+
   @override
   TrackpadState build() {
-    return TrackpadState(pointerPosition: Offset.zero, isInteracting: false);
+    return TrackpadState(
+      pointerPosition: Offset.zero,
+      isInteracting: false,
+      smartDirective: SmartDirective.none,
+    );
   }
 
   void _send(String type, Map<String, dynamic> data) {
@@ -97,6 +115,23 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
       }
       _accumulatedDx = 0;
       _accumulatedDy = 0;
+    }
+  }
+
+  void dismissSmartDirective() {
+    _smartDirectiveTimer?.cancel();
+    state = state.copyWith(smartDirective: SmartDirective.none);
+  }
+
+  void onSmartDirectiveTapped() {
+    AppHaptics.mediumImpact();
+    if (state.smartDirective == SmartDirective.copy) {
+      _smartDirectiveTimer?.cancel();
+      _send("COPY", {});
+      state = state.copyWith(smartDirective: SmartDirective.paste);
+    } else if (state.smartDirective == SmartDirective.paste) {
+      _send("PASTE", {});
+      dismissSmartDirective();
     }
   }
 
@@ -303,6 +338,11 @@ class TrackpadNotifier extends Notifier<TrackpadState> {
     if (_isDragMode && _dragStartSent) {
       _send("DRAG_END", {});
       _dragStartSent = false;
+      _smartDirectiveTimer?.cancel();
+      state = state.copyWith(smartDirective: SmartDirective.copy);
+      _smartDirectiveTimer = Timer(const Duration(seconds: 5), () {
+        dismissSmartDirective();
+      });
     }
     if (details.pointerCount == 0 || _activePointers <= 0) {
       _isDragMode = false;

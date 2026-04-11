@@ -180,6 +180,20 @@ Kullanıcı medya oynatıcı kontrollerini kullandığında WebSocket üzerinden
 { "t": "SYS", "action": "REBOOT" }
 ```
 
+#### Akıllı Yönergeler (Smart Directives - Copy/Paste)
+Kullanıcı mobilde trackpad üzerinde bir metni/öğeyi sürükleyip seçtikten sonra ortaya çıkan hızlı kopyala ve yapıştır butonu üzerinden Ctrl+C ve Ctrl+V (veya Cmd+C / Cmd+V) eylemlerini tetiklemesini sağlar. Bu eylemler kesin gerçekleşmesi gerektiği için WebSocket üzerinden iletilir.
+- `t`: "COPY" (Kopyalama için kısayolu tetikler)
+- `t`: "PASTE" (Yapıştırma için kısayolu tetikler)
+
+**Örnek WebSocket Mesajı (Kopyala):**
+```json
+{ "t": "COPY" }
+```
+**Örnek WebSocket Mesajı (Yapıştır):**
+```json
+{ "t": "PASTE" }
+```
+
 ### B. AKICI OLAYLAR (UDP ÜZERİNDEN GÖNDERİLİR)
 Hızlı hareketler (gecikmeyi önlemek için) ve paket kaybının tolere edilebileceği durumlar **UDP** üzerinden Host'un `data_port` (Örn: 44444) adresine gönderilir.
 
