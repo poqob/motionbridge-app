@@ -262,6 +262,18 @@ abstract class AppLocalizations {
   /// **'Version: {version}'**
   String version(Object version);
 
+  /// No description provided for @airMouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Air Mouse'**
+  String get airMouse;
+
+  /// No description provided for @airMouseSensitivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Air Mouse Sensitivity'**
+  String get airMouseSensitivity;
+
   /// No description provided for @lockScreen.
   ///
   /// In en, this message translates to:

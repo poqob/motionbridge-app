@@ -116,7 +116,9 @@ class NetworkManager {
           type == 'MEDIA' ||
           type == 'SYS' ||
           type == 'COPY' ||
-          type == 'PASTE') {
+          type == 'PASTE' ||
+          type == 'AM_MODE' ||
+          type == 'AM_SENS') {
         if (_webSocket != null && _webSocket!.readyState == WebSocket.open) {
           _webSocket!.add(jsonString);
           if (kDebugMode) print("Sent via WebSocket: $jsonString");
@@ -152,6 +154,17 @@ class NetworkManager {
 
   void sendReboot() {
     sendPacket({"t": "SYS", "action": "REBOOT"});
+  }
+
+  void sendAirMouseMode(bool enabled) {
+    sendPacket({"t": "AM_MODE", "enabled": enabled});
+  }
+
+  void sendAirMouseSensitivity(double value) {
+    sendPacket({
+      "t": "AM_SENS",
+      "value": double.parse(value.toStringAsFixed(1)),
+    });
   }
 
   void _setState(NetworkConnectionState state) {

@@ -92,6 +92,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get airMouse => 'Air Mouse';
+
+  @override
+  String get airMouseSensitivity => 'Air Mouse Sensitivity';
+
+  @override
   String get lockScreen => 'Lock';
 
   @override

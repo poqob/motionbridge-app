@@ -228,9 +228,91 @@ Trackpad üzerinde iki parmak kaydırıldığında, fare tekerleği (scroll) etk
 { "t": "D", "v": 0.45 }
 ```
 
+---
+
+## 4. Air Mouse Protokolü
+
+Air Mouse, **gyroscope** sensöründen gelen açısal hız verileriyle imleç kontrolü sağlar. Bu yaklaşım, telefonu döndürdüğünüzde mouse'un da o yöne hareket etmesini sağlar.
+
+### Çalışma Prensibi
+- **Gyroscope**: Telefonun açısal hızını (radyan/saniye) ölçer
+- **Roll**: Telefon sağa/sola döndürüldüğünde (y ekseni)
+- **Pitch**: Telefon öne/geri eğildiğinde (x ekseni)
+- **Yaw**: Telefon saat yönünde döndürüldüğünde (z ekseni - scroll için)
+
+### Clutch Mekanizması
+Air Mouse, **clutch (kavrama)** mekanizması kullanır:
+- Kullanıcı ekrana dokunduğunda clutch **aktifleşir** → imleç hareketi gönderilir
+- Kullanıcı parmağını ekrandan çektiğinde clutch **çekilir** → imleç hareketi durur
+
+### A. KRITIK OLAYLAR (WEBSOCKET ÜZERİNDEN GÖNDERİLİR)
+
+#### Air Mouse Modu Açma/Kapama
+Air Mouse sayfası açıldığında veya kapatıldığında gönderilir.
+- `t`: "AM_MODE"
+- `enabled`: `true` (açılışta) veya `false` (kapanışta)
+
+**Örnek WebSocket Mesajları:**
+```json
+{ "t": "AM_MODE", "enabled": true }
+```
+```json
+{ "t": "AM_MODE", "enabled": false }
+```
+
+#### Hassasiyet Ayarı
+Kullanıcı ayarlardan hassasiyet değiştirdiğinde gönderilir.
+- `t`: "AM_SENS"
+- `value`: Hassasiyet çarpanı (0.1 ile 3.0 arası, varsayılan: 1.0)
+
+**Örnek WebSocket Mesajı:**
+```json
+{ "t": "AM_SENS", "value": 1.5 }
+```
+
+### B. AKICI VERİ (UDP ÜZERİNDEN GÖNDERİLİR)
+
+#### Gyroscope Açısal Hız Verisi
+Clutch aktiffken, gyroscope sensöründen alınan açısal hız değerleri ~60 FPS rate ile gönderilir. Değerler -1.0 ile 1.0 arasında normalize edilmiştir.
+- `t`: "AM_M" (Air Mouse Move)
+- `x`: Yatay mouse hareketi (-1.0 sol, +1.0 sağ)
+- `y`: Dikey mouse hareketi (-1.0 yukarı, +1.0 aşağı)
+
+**Eksen Haritalaması:**
+| Orientasyon | Gyro Ekseni | Mouse Yönü |
+|-------------|-------------|------------|
+| Portrait | gyro.y (roll) | x (sağa/sola) |
+| Portrait | gyro.x (pitch) | y (yukarı/aşağı) |
+| Landscape Left | gyro.x | x (sağa/sola) |
+| Landscape Left | gyro.y | y (yukarı/aşağı) |
+| Landscape Right | gyro.x | x (sola/sağa) |
+| Landscape Right | gyro.y | y (aşağı/yukarı) |
+
+**Örnek UDP Mesajı:**
+```json
+{ "t": "AM_M", "x": 0.12, "y": -0.08, "z": 0.0 }
+```
+
+### C. ÖNERİLEN MASAÜSTÜ İŞLEME
+
+Desktop yazılımı AM_M paketlerini aldığında:
+1. x değerini yatay mouse hareketine dönüştür (hassasiyete göre ölçekle)
+2. y değerini dikey mouse hareketine dönüştür
+3. değerler -1.0 ile 1.0 arasında olduğundan doğrudan mouse delta olarak kullanılabilir
+
+**Temel dönüşüm formülü:**
+```
+mouseDeltaX = am_x * sensitivity * movementScale
+mouseDeltaY = am_y * sensitivity * movementScale
+```
+mouseDeltaX = am_x * sensitivity * movementScale
+mouseDeltaY = am_y * sensitivity * movementScale
+scrollDelta = am_z * sensitivity * scrollScale
+```
+
 ## Önerilen Masaüstü Yazılım Akışı
 1. `44444` portunu UDP için, `44445` portunu WebSocket Sunucusu için dinlemeye başla.
 2. UDP'den Keşif (Broadcast) paketi geldiğinde, cihaza onay veriliyorsa UDP üzerinden `discovery_ack` yanıtını don.
 3. Mobil cihaz WebSocket (`ws://[HOST_IP]:44445`) üzerinden bağlandığında eşleşmeyi kesinleştir. Gelen cihaz ID'sini kaydet ki başka paketlerle karışmasın.
-4. **WebSocket dinleyicisinde:** Gelen `C`, `DRAG_START`, `DRAG_END`, `SWIPE_3`, ve `DICT` komutlarını yakalayarak İşletim Sistemi API'leri üzerinden tıklama bas/bırak, swipe kısayolları ve metin yazdırma (keystroke) komutlarına dönüştür.
-5. **UDP dinleyicisinde:** Gelen `M`, `S`, `D` paketlerini yakalayarak anlık imleç hareketini ve tekerlek kaydırmasını gerçekleştir. (Sadece WebSocket üzerinden bağlı / handshake yapılmış cihazların IP'sinden gelen UDP paketlerini işle).
+4. **WebSocket dinleyicisinde:** Gelen `C`, `DRAG_START`, `DRAG_END`, `SWIPE_3`, `DICT`, `AM_MODE`, ve `AM_SENS` komutlarını yakalayarak İşletim Sistemi API'leri üzerinden tıklama bas/bırak, swipe kısayolları, metin yazdırma (keystroke) ve Air Mouse modu komutlarına dönüştür.
+5. **UDP dinleyicisinde:** Gelen `M`, `S`, `D`, ve `AM_M` paketlerini yakalayarak anlık imleç hareketini, tekerlek kaydırmasını veya Air Mouse gyroscope verilerini işle. (Sadece WebSocket üzerinden bağlı / handshake yapılmış cihazların IP'sinden gelen UDP paketlerini işle).

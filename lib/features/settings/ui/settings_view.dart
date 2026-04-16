@@ -6,6 +6,7 @@ import '../logic/settings_provider.dart';
 import 'speech_engine_selector.dart';
 import 'trackpad_background_selector.dart';
 import 'about_view.dart';
+import '../../air_mouse/ui/air_mouse_view.dart';
 
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});
@@ -230,6 +231,79 @@ class SettingsView extends ConsumerWidget {
 
               const SizedBox(height: 16),
               const TrackpadBackgroundSelector(),
+
+              const SizedBox(height: 32),
+              const Divider(),
+
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.air_rounded,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                title: Text(
+                  loc.airMouse,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  'Open Air Mouse controller',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AirMouseView(),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 16),
+              Text(
+                loc.airMouseSensitivity,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.speed_rounded, size: 20),
+                  Expanded(
+                    child: Slider(
+                      value: state.airMouseSensitivity,
+                      min: 0.1,
+                      max: 3.0,
+                      divisions: 29,
+                      label: state.airMouseSensitivity.toStringAsFixed(1),
+                      onChanged: (value) {
+                        notifier.setAirMouseSensitivity(value);
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: 40,
+                    child: Text(
+                      state.airMouseSensitivity.toStringAsFixed(1),
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
 
               const SizedBox(height: 48),
               const Divider(),

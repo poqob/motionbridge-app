@@ -27,6 +27,8 @@
   "languageRussian": "Русский",
   "reverseScroll": "Kaydırmayı Tersine Çevir",
   "version": "Sürüm: {version}",
+  "airMouse": "Air Mouse",
+  "airMouseSensitivity": "Air Mouse Hassasiyeti",
   "lockScreen": "Kilitle",
   "powerOff": "Kapat",
   "reboot": "Yeniden Başlat",

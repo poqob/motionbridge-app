@@ -92,6 +92,12 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get airMouse => 'Air Mouse';
+
+  @override
+  String get airMouseSensitivity => 'Air Mouse Hassasiyeti';
+
+  @override
   String get lockScreen => 'Kilitle';
 
   @override

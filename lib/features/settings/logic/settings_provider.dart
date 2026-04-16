@@ -12,6 +12,7 @@ class SettingsState {
   final bool reverseScroll;
   final String speechEnginePackage;
   final String trackpadBackground;
+  final double airMouseSensitivity;
 
   SettingsState({
     required this.maxFps,
@@ -22,6 +23,7 @@ class SettingsState {
     required this.reverseScroll,
     required this.speechEnginePackage,
     required this.trackpadBackground,
+    required this.airMouseSensitivity,
   });
 
   SettingsState copyWith({
@@ -33,6 +35,7 @@ class SettingsState {
     bool? reverseScroll,
     String? speechEnginePackage,
     String? trackpadBackground,
+    double? airMouseSensitivity,
   }) {
     return SettingsState(
       maxFps: maxFps ?? this.maxFps,
@@ -43,6 +46,7 @@ class SettingsState {
       reverseScroll: reverseScroll ?? this.reverseScroll,
       speechEnginePackage: speechEnginePackage ?? this.speechEnginePackage,
       trackpadBackground: trackpadBackground ?? this.trackpadBackground,
+      airMouseSensitivity: airMouseSensitivity ?? this.airMouseSensitivity,
     );
   }
 }
@@ -62,6 +66,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
       reverseScroll: false,
       speechEnginePackage: "",
       trackpadBackground: "isometric",
+      airMouseSensitivity: 1.0,
     );
   }
 
@@ -77,6 +82,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
     final revScroll = _prefs?.getBool('reverseScroll') ?? false;
     final speechPkg = _prefs?.getString('speechEnginePackage') ?? '';
     final trackBack = _prefs?.getString('trackpadBackground') ?? 'isometric';
+    final airMouseSens = _prefs?.getDouble('airMouseSensitivity') ?? 1.0;
     if (storedDeviceId == null) {
       _prefs?.setString('deviceId', deviceId);
     }
@@ -119,6 +125,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
       reverseScroll: revScroll,
       speechEnginePackage: speechPkg,
       trackpadBackground: trackBack,
+      airMouseSensitivity: airMouseSens,
     );
   }
 
@@ -155,6 +162,11 @@ class SettingsNotifier extends Notifier<SettingsState> {
   void setTrackpadBackground(String style) {
     state = state.copyWith(trackpadBackground: style);
     _prefs?.setString('trackpadBackground', style);
+  }
+
+  void setAirMouseSensitivity(double value) {
+    state = state.copyWith(airMouseSensitivity: value.clamp(0.1, 3.0));
+    _prefs?.setDouble('airMouseSensitivity', value.clamp(0.1, 3.0));
   }
 }
 

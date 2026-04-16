@@ -14,6 +14,7 @@ import 'features/volume/ui/volume_slider.dart';
 import 'features/media/ui/media_view.dart';
 import 'features/media/ui/media_card.dart';
 import 'features/widgets/ui/widgets_section.dart';
+import 'features/air_mouse/ui/air_mouse_view.dart';
 
 enum InputMode { trackpad, dimmer, volume, media }
 
@@ -156,6 +157,18 @@ class _MotionScreenState extends ConsumerState<MotionScreen> {
               onTap: () {
                 ref.read(inputModeProvider.notifier).setMode(InputMode.media);
                 Navigator.pop(context);
+              },
+            ),
+            _MenuTile(
+              title: loc.airMouse,
+              icon: Icons.air_rounded,
+              isSelected: false,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AirMouseView()),
+                );
               },
             ),
             const Divider(height: 32),

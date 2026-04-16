@@ -37,6 +37,8 @@
   "reverseScroll": "Обратная прокрутка",
   "reverseScroll": "Обратная прокрутка",
   "version": "Версия: {version}",
+  "airMouse": "Air Mouse",
+  "airMouseSensitivity": "Чувствительность Air Mouse",
   "lockScreen": "Блокировка",
   "powerOff": "Выключение",
   "reboot": "Перезагрузка",

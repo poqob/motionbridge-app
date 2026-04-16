@@ -27,6 +27,8 @@
   "languageRussian": "Русский",
   "reverseScroll": "Reverse Scroll",
   "version": "Version: {version}",
+  "airMouse": "Air Mouse",
+  "airMouseSensitivity": "Air Mouse Sensitivity",
   "lockScreen": "Lock",
   "powerOff": "Power off",
   "reboot": "Reboot",
