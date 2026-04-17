@@ -1,14 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../utils/network_manager.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../air_mouse/logic/air_mouse_provider.dart';
 
-class WidgetsSection extends StatelessWidget {
+DeviceOrientation _getOrientation(BuildContext context) {
+  final orientation = MediaQuery.orientationOf(context);
+  if (orientation == Orientation.landscape) {
+    final isLandscapeLeft =
+        MediaQuery.of(context).size.width >
+            MediaQuery.of(context).size.height &&
+        MediaQuery.of(context).viewPadding.left >
+            MediaQuery.of(context).viewPadding.right;
+    return isLandscapeLeft
+        ? DeviceOrientation.landscapeLeft
+        : DeviceOrientation.landscapeRight;
+  }
+  return DeviceOrientation.portrait;
+}
+
+class WidgetsSection extends ConsumerWidget {
   const WidgetsSection({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final airMouseState = ref.watch(airMouseProvider);
+    final isAirMouseOn = airMouseState.isClutchEngaged;
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -41,6 +60,57 @@ class WidgetsSection extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Air Mouse Toggle Button
+                    Material(
+                      color: isAirMouseOn
+                          ? theme.colorScheme.primaryContainer
+                          : theme.colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(16),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () {
+                          final notifier = ref.read(airMouseProvider.notifier);
+                          if (isAirMouseOn) {
+                            notifier.releaseClutch();
+                            notifier.sendModeDisabled();
+                          } else {
+                            notifier.updateOrientation(
+                              _getOrientation(context),
+                            );
+                            notifier.sendModeEnabled();
+                            notifier.engageClutch();
+                          }
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.air_rounded,
+                                size: 32,
+                                color: isAirMouseOn
+                                    ? theme.colorScheme.onPrimaryContainer
+                                    : theme.colorScheme.onSecondaryContainer,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                l10n.airMouse,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: isAirMouseOn
+                                      ? theme.colorScheme.onPrimaryContainer
+                                      : theme.colorScheme.onSecondaryContainer,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     // Lock Button
                     Material(
                       color: theme.colorScheme.secondaryContainer,

@@ -4,6 +4,7 @@ import '../logic/trackpad_provider.dart';
 import '../logic/dictation_provider.dart';
 import '../../dimmer/ui/dimmer_view.dart';
 import '../../settings/logic/settings_provider.dart';
+import '../../air_mouse/logic/air_mouse_provider.dart';
 
 import 'trackpad_painter.dart';
 
@@ -27,6 +28,12 @@ class _TrackpadViewState extends ConsumerState<TrackpadView> {
   void dispose() {
     _cursorsNotifier.dispose();
     _pathsNotifier.dispose();
+    // Ensure Air Mouse stops when leaving trackpad view if it was left ON
+    final airMouseNotifier = ref.read(airMouseProvider.notifier);
+    if (ref.read(airMouseProvider).isClutchEngaged) {
+      airMouseNotifier.releaseClutch();
+      airMouseNotifier.sendModeDisabled();
+    }
     super.dispose();
   }
 
