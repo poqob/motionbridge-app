@@ -27,3 +27,10 @@ To run this Flutter project, ensure you have the Flutter SDK installed and a mob
 3. Run `flutter run` on your target device (Android/iOS).
 
 For help getting started with Flutter development, view the [online documentation](https://docs.flutter.dev/), which offers tutorials, samples, guidance on mobile development, and a full API reference.
+
+## Screenshots
+
+| | | |
+|:-:|:-:|:-:|
+| ![ss/flutter_01.png](ss/flutter_01.png) | ![ss/flutter_02.png](ss/flutter_02.png) | ![ss/flutter_03.png](ss/flutter_03.png) |
+| ![ss/flutter_04.png](ss/flutter_04.png) | ![ss/flutter_05.png](ss/flutter_05.png) | ![ss/flutter_06.png](ss/flutter_06.png) |
